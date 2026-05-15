@@ -1,14 +1,36 @@
-import { BlurFilter, NoiseFilter } from "pixi.js";
+import { NoiseFilter } from "pixi.js";
 import type { Filter } from "pixi.js";
-import { AdjustmentFilter, ColorOverlayFilter } from "pixi-filters";
+import { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
+import {
+  AdvancedBloomFilter,
+  AdjustmentFilter,
+  ColorOverlayFilter,
+  DotFilter,
+  GlitchFilter,
+  GlowFilter,
+  KawaseBlurFilter,
+  MotionBlurFilter,
+  SimplexNoiseFilter,
+  ZoomBlurFilter,
+} from "pixi-filters";
 import type { PixiFilterValues } from "./filterTypes";
 
 export function createPixiFilters(filterChain: PixiFilterValues): Filter[] {
   const filters: Filter[] = [];
-  const tone = filterChain.tone;
-  const blur = filterChain.blur;
-  const grain = filterChain.grain;
-  const lightLeak = filterChain.lightLeak;
+  const {
+    advancedBloom,
+    blur,
+    chromaticAberration,
+    dot,
+    glitch,
+    glow,
+    grain,
+    lightLeak,
+    motionBlur,
+    noise,
+    tone,
+    zoomBlur,
+  } = filterChain;
 
   if (tone.enabled) {
     filters.push(
@@ -22,10 +44,9 @@ export function createPixiFilters(filterChain: PixiFilterValues): Filter[] {
 
   if (blur.enabled && blur.strength > 0) {
     filters.push(
-      new BlurFilter({
+      new KawaseBlurFilter({
         strength: blur.strength,
-        quality: 4,
-        kernelSize: 7,
+        quality: 3,
       }),
     );
   }
@@ -44,6 +65,94 @@ export function createPixiFilters(filterChain: PixiFilterValues): Filter[] {
       new ColorOverlayFilter({
         color: getLightLeakColor(lightLeak.warmth),
         alpha: lightLeak.intensity,
+      }),
+    );
+  }
+
+  if (advancedBloom.enabled) {
+    filters.push(
+      new AdvancedBloomFilter({
+        threshold: advancedBloom.threshold,
+        bloomScale: advancedBloom.bloomScale,
+        brightness: advancedBloom.brightness,
+        blur: advancedBloom.blur,
+      }),
+    );
+  }
+
+  if (dot.enabled) {
+    filters.push(
+      new DotFilter({
+        scale: dot.scale,
+        angle: dot.angle,
+        grayscale: false,
+      }),
+    );
+  }
+
+  if (glitch.enabled) {
+    filters.push(
+      new GlitchFilter({
+        slices: Math.round(glitch.slices),
+        offset: glitch.offset,
+        direction: glitch.direction,
+      }),
+    );
+  }
+
+  if (glow.enabled) {
+    filters.push(
+      new GlowFilter({
+        distance: glow.distance,
+        outerStrength: glow.outerStrength,
+        innerStrength: glow.innerStrength,
+      }),
+    );
+  }
+
+  if (motionBlur.enabled) {
+    const kernelSize = Math.round(motionBlur.kernelSize);
+    const oddKernelSize = kernelSize % 2 === 0 ? kernelSize + 1 : kernelSize;
+
+    filters.push(
+      new MotionBlurFilter({
+        velocity: { x: motionBlur.velocityX, y: motionBlur.velocityY },
+        kernelSize: Math.max(5, oddKernelSize),
+      }),
+    );
+  }
+
+  if (noise.enabled) {
+    filters.push(
+      new SimplexNoiseFilter({
+        strength: noise.strength,
+        noiseScale: noise.noiseScale,
+      }),
+    );
+  }
+
+  if (zoomBlur.enabled) {
+    filters.push(
+      new ZoomBlurFilter({
+        strength: zoomBlur.strength,
+        innerRadius: zoomBlur.innerRadius,
+      }),
+    );
+  }
+
+  if (chromaticAberration.enabled) {
+    filters.push(
+      new ChromaticAberrationFilter({
+        offsetX: chromaticAberration.offsetX,
+        offsetY: chromaticAberration.offsetY,
+        redX: chromaticAberration.redX,
+        redY: chromaticAberration.redY,
+        blueX: chromaticAberration.blueX,
+        blueY: chromaticAberration.blueY,
+        radial: chromaticAberration.radial,
+        twist: chromaticAberration.twist,
+        centerX: chromaticAberration.centerX,
+        centerY: chromaticAberration.centerY,
       }),
     );
   }

@@ -226,9 +226,11 @@ button {
 }
 
 .filter-panel {
+  position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
+  overflow: hidden;
   border-left: 1px solid var(--outline);
   background: var(--surface);
 }
@@ -255,9 +257,9 @@ button {
 
 .filter-section__header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   padding: 10px 12px;
 }
 
@@ -312,6 +314,183 @@ button {
   display: grid;
   gap: 14px;
   padding: 0 12px 14px;
+}
+
+.filter-section__remove {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.filter-section__remove:hover {
+  border-color: var(--outline);
+  background: var(--surface-highest);
+  color: var(--danger);
+}
+
+.filter-list__empty {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  padding: 48px 20px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.filter-list__empty p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.panel-footer {
+  padding: 10px 12px;
+  border-top: 1px solid var(--outline);
+  background: var(--surface-low);
+}
+
+.panel-footer__reset {
+  width: 100%;
+}
+
+.filter-picker {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--surface);
+}
+
+.filter-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 72px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--outline);
+  background: var(--surface-low);
+}
+
+.filter-picker__header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.filter-picker__close {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.filter-picker__close:hover {
+  background: var(--surface-highest);
+  border-color: var(--outline-strong);
+}
+
+.filter-picker__list {
+  overflow-y: auto;
+}
+
+.filter-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--outline);
+  transition: background-color 160ms ease;
+}
+
+.filter-picker__item.is-added {
+  opacity: 0.45;
+}
+
+.filter-picker__item-info {
+  display: grid;
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 2px;
+}
+
+.filter-picker__item-info strong {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-picker__item-info small {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-picker__add {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  min-width: 64px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-sm);
+  background: var(--surface-high);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  justify-content: center;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.filter-picker__add:hover:not(:disabled) {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+
+.filter-picker__add:disabled {
+  cursor: default;
+  color: var(--text-dim);
+}
+
+.filter-picker__add:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.filter-section__remove:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .button,
@@ -373,6 +552,17 @@ button {
   background: transparent;
   border-color: var(--outline);
   color: var(--text-muted);
+}
+
+.button--danger {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  color: var(--danger);
+}
+
+.button--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-color: var(--danger);
 }
 
 .button:disabled,
