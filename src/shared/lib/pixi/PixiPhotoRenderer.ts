@@ -90,7 +90,44 @@ export class PixiPhotoRenderer {
     this.sprite.anchor.set(0.5);
     this.viewport.addChild(this.sprite);
     this.applyFilters();
+    this.resetViewport();
     this.layoutSprite();
+    this.render();
+  }
+
+  wheelZoom(deltaY: number, cx: number, cy: number): void {
+    if (this.sprite === null) {
+      return;
+    }
+
+    const factor = deltaY < 0 ? 1.1 : 1 / 1.1;
+    const oldZoom = this.viewport.scale.x;
+    const newZoom = Math.max(0.5, Math.min(10, oldZoom * factor));
+
+    if (newZoom === oldZoom) {
+      return;
+    }
+
+    this.viewport.x = cx - ((cx - this.viewport.x) / oldZoom) * newZoom;
+    this.viewport.y = cy - ((cy - this.viewport.y) / oldZoom) * newZoom;
+    this.viewport.scale.set(newZoom);
+    this.clampViewport();
+    this.render();
+  }
+
+  pan(dx: number, dy: number): void {
+    if (this.sprite === null) {
+      return;
+    }
+
+    this.viewport.x += dx;
+    this.viewport.y += dy;
+    this.clampViewport();
+    this.render();
+  }
+
+  resetView(): void {
+    this.resetViewport();
     this.render();
   }
 
@@ -229,6 +266,41 @@ export class PixiPhotoRenderer {
     destroyFilters(this.activeFilters);
     this.activeFilters = createPixiFilters(this.filterValues);
     this.sprite.filters = this.activeFilters;
+  }
+
+  private resetViewport(): void {
+    this.viewport.x = 0;
+    this.viewport.y = 0;
+    this.viewport.scale.set(1);
+  }
+
+  private clampViewport(): void {
+    if (this.sprite === null || this.app === null || this.texture === null) {
+      return;
+    }
+
+    const rw = this.app.renderer.width;
+    const rh = this.app.renderer.height;
+    const vz = this.viewport.scale.x;
+
+    // Половина размера спрайта на экране
+    const hw = (this.texture.width * this.sprite.scale.x * vz) / 2;
+    const hh = (this.texture.height * this.sprite.scale.y * vz) / 2;
+
+    // Минимальный overlap: хотя бы столько пикселей изображения должно
+    // оставаться видимым при смещении к краю экрана
+    const overlapX = Math.max(60, hw * 0.25);
+    const overlapY = Math.max(60, hh * 0.25);
+
+    // Центр спрайта в экранных координатах
+    const scx = this.viewport.x + (rw / 2) * vz;
+    const scy = this.viewport.y + (rh / 2) * vz;
+
+    const clampedScx = Math.max(overlapX - hw, Math.min(rw - overlapX + hw, scx));
+    const clampedScy = Math.max(overlapY - hh, Math.min(rh - overlapY + hh, scy));
+
+    this.viewport.x = clampedScx - (rw / 2) * vz;
+    this.viewport.y = clampedScy - (rh / 2) * vz;
   }
 
   private clearSprite(): void {
