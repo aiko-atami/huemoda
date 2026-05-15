@@ -71,7 +71,7 @@ button {
 
 .editor-shell {
   display: grid;
-  grid-template-columns: var(--rail-width) minmax(0, 1fr) var(--panel-width);
+  grid-template-columns: minmax(0, 1fr) var(--panel-width);
   height: 100svh;
   min-height: 620px;
   background: var(--background);
@@ -743,7 +743,7 @@ button {
 
 @media (max-width: 1180px) {
   .editor-shell {
-    grid-template-columns: var(--rail-width) minmax(0, 1fr) 292px;
+    grid-template-columns: minmax(0, 1fr) 292px;
   }
 
   .editor-topbar {
