@@ -77,44 +77,6 @@ button {
   background: var(--background);
 }
 
-.tool-rail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 28px;
-  padding: 12px 8px;
-  border-right: 1px solid var(--outline);
-  background: var(--surface-low);
-}
-
-.brand-mark {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  border: 1px solid var(--outline-strong);
-  border-radius: var(--radius);
-  background: var(--primary);
-  color: var(--on-primary);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.tool-rail__icons {
-  display: grid;
-  gap: 10px;
-  color: var(--text-muted);
-}
-
-.tool-rail__icons svg {
-  width: 36px;
-  height: 36px;
-  padding: 8px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  border: 1px solid transparent;
-}
-
 .editor-main {
   display: grid;
   min-width: 0;
@@ -804,10 +766,6 @@ button {
     grid-template-rows: auto auto;
     height: auto;
     min-height: 100svh;
-  }
-
-  .tool-rail {
-    display: none;
   }
 
   .editor-main {

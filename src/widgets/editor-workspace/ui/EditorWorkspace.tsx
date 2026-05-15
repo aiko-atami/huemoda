@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { ImageIcon, RotateCcw, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { RotateCcw, Trash2 } from "lucide-react";
 import { useUnit } from "effector-react";
 import {
   $loadedImage,
@@ -56,17 +56,6 @@ export function EditorWorkspace() {
 
   return (
     <section className="editor-shell" aria-label="HueModa photo editor">
-      <aside className="tool-rail" aria-label="Tool rail">
-        <div className="brand-mark" aria-label="HueModa">
-          HM
-        </div>
-        <div className="tool-rail__icons" aria-hidden="true">
-          <ImageIcon size={20} />
-          <SlidersHorizontal size={20} />
-          <Sparkles size={20} />
-        </div>
-      </aside>
-
       <section className="editor-main">
         <header className="editor-topbar">
           <div className="editor-title">
