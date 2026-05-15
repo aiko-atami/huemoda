@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { RotateCcw, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useUnit } from "effector-react";
 import {
   $loadedImage,
@@ -68,7 +68,6 @@ export function EditorWorkspace() {
               <span>No image loaded</span>
             ) : (
               <>
-                <span className="image-meta__name">{image.name}</span>
                 <span>{formatFileSize(image.size)}</span>
                 <span>{image.type.replace("image/", "").toUpperCase()}</span>
               </>
@@ -86,15 +85,6 @@ export function EditorWorkspace() {
               disabled={image === null}
             >
               Clear
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              icon={<RotateCcw size={16} />}
-              onClick={resetFilters}
-            >
-              Reset
             </Button>
             <ExportButton disabled={image === null || !isRendererReady} exportImage={exportImage} />
           </div>
