@@ -1,34 +1,27 @@
-import { defineConfig } from 'vite-plus'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite-plus";
+import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
   staged: {
-    "*": "vp check --fix"
+    "*": "vp check --fix",
   },
-  fmt: {},
+  fmt: {
+    ignorePatterns: ["**/*.md"],
+  },
   lint: {
-    "plugins": [
-      "oxc",
-      "typescript",
-      "unicorn",
-      "react"
-    ],
-    "categories": {
-      "correctness": "warn"
+    plugins: ["oxc", "typescript", "unicorn", "react"],
+    categories: {
+      correctness: "warn",
     },
-    "env": {
-      "builtin": true
+    env: {
+      builtin: true,
     },
-    "ignorePatterns": [
-      "dist"
-    ],
-    "overrides": [
+    ignorePatterns: ["dist"],
+    overrides: [
       {
-        "files": [
-          "**/*.{ts,tsx}"
-        ],
-        "rules": {
+        files: ["**/*.{ts,tsx}"],
+        rules: {
           "constructor-super": "error",
           "for-direction": "error",
           "getter-return": "error",
@@ -115,19 +108,19 @@ export default defineConfig({
           "react/only-export-components": [
             "error",
             {
-              "allowConstantExport": true
-            }
-          ]
+              allowConstantExport: true,
+            },
+          ],
         },
-        "env": {
-          "browser": true
-        }
-      }
+        env: {
+          browser: true,
+        },
+      },
     ],
-    "options": {
-      "typeAware": true,
-      "typeCheck": true
-    }
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
   },
   plugins: [react()],
-})
+});

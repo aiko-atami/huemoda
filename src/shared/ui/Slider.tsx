@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useId, type CSSProperties } from "react";
 
 type SliderProps = {
   disabled?: boolean;
@@ -21,6 +21,8 @@ export function Slider({
   value,
   valueLabel,
 }: SliderProps) {
+  const id = useId();
+  const outputId = `${id}-value`;
   const percent = ((value - min) / (max - min)) * 100;
   const style = {
     "--slider-fill": `${Math.min(Math.max(percent, 0), 100)}%`,
@@ -30,14 +32,19 @@ export function Slider({
     <label className="slider-control" style={style}>
       <span className="slider-control__header">
         <span>{label}</span>
-        <output>{valueLabel}</output>
+        <output id={outputId} htmlFor={id}>
+          {valueLabel}
+        </output>
       </span>
       <input
+        id={id}
         type="range"
         min={min}
         max={max}
         step={step}
         value={value}
+        aria-valuetext={valueLabel}
+        aria-describedby={outputId}
         disabled={disabled}
         onChange={(event) => onValueChange(Number(event.target.value))}
       />
