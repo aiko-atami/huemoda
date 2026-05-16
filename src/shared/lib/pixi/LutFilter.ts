@@ -1,7 +1,5 @@
 import { Filter, GlProgram, GpuProgram, Texture } from "pixi.js";
-
-const LUT_SIZE = 64;
-const TILE_COUNT = 8;
+import { PROJECT_LUT_SIZE, PROJECT_LUT_TILE_COUNT } from "./lutLayout";
 
 const glVertex = `
 in vec2 aPosition;
@@ -194,8 +192,8 @@ export class LutFilter extends Filter {
       resources: {
         lutUniforms: {
           uIntensity: { value: intensity, type: "f32" },
-          uLutSize: { value: LUT_SIZE, type: "f32" },
-          uTileCount: { value: TILE_COUNT, type: "f32" },
+          uLutSize: { value: PROJECT_LUT_SIZE, type: "f32" },
+          uTileCount: { value: PROJECT_LUT_TILE_COUNT, type: "f32" },
         },
         uLutTexture: texture.source,
         uLutSampler: texture.source.style,
