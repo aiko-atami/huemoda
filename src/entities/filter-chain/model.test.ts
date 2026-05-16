@@ -16,8 +16,10 @@ describe("filter chain model", () => {
     expect(state.tone.enabled).toBe(false);
     expect(state.tone.parameters.brightness).toBe(1);
     expect(state.lut.parameters.presetId).toBe("warmEditorial");
-    expect(state.lut.parameters.intensity).toBe(0.8);
-    expect(state.grain.parameters.intensity).toBe(0.14);
+    expect(state.lut.parameters.intensity).toBe(0.35);
+    expect(state.grain.parameters.intensity).toBe(0.07);
+    expect(state.chromaticAberration.parameters.intensity).toBe(0.25);
+    expect(state.chromaticAberration.parameters.offset).toBe(0);
   });
 
   it("adds a filter and auto-enables it", () => {
@@ -91,8 +93,21 @@ describe("filter chain model", () => {
 
     expect(pixiValues.lut).toEqual({
       enabled: true,
-      intensity: 0.8,
+      intensity: 0.35,
       presetId: "neutral",
     });
+  });
+
+  it("maps chromatic aberration offset from control units to shader ratio", () => {
+    const state = updateFilterParameterState(
+      addFilterToChain(createInitialFilterState(), "chromaticAberration"),
+      {
+        filterId: "chromaticAberration",
+        parameterId: "offset",
+        value: 1,
+      },
+    );
+
+    expect(toPixiFilterValues(state).chromaticAberration.offsetX).toBe(0.001);
   });
 });
