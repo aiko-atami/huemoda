@@ -10,6 +10,7 @@
     "lint": "vp lint .",
     "test": "vp test",
     "preview": "vp preview",
+    "convert:luts": "node --experimental-strip-types scripts/convert-cube-luts.ts",
     "prepare": "vp config"
   },
   "dependencies": {
