@@ -261,6 +261,12 @@ export class ChromaticAberrationFilter extends Filter {
     super({
       gpuProgram,
       glProgram,
+      // Prevent the filter area from being clipped to the viewport.
+      // Without this, when the image extends beyond the screen (zoom > 1) the
+      // filter bounds are cropped to the viewport, so UV [0,1] covers only the
+      // visible slice instead of the full image — making the aberration offset
+      // represent a smaller and smaller fraction of the image as you zoom in.
+      clipToViewport: false,
       resources: {
         chromaticAberrationUniforms: {
           uOffsetX: { value: opts.offsetX, type: "f32" },
