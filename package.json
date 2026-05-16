@@ -13,6 +13,7 @@
     "prepare": "vp config"
   },
   "dependencies": {
+    "@base-ui/react": "^1.4.1",
     "effector": "^23.4.4",
     "effector-react": "^23.3.0",
     "lucide-react": "^1.14.0",

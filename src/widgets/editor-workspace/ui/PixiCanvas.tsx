@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LoadedImage } from "../../../entities/image/model";
+import type { LoadedImage } from "../../../entities/image";
 import { PixiPhotoRenderer } from "../../../shared/lib/pixi/PixiPhotoRenderer";
 import type { PixiFilterValues } from "../../../shared/lib/pixi/filterTypes";
 

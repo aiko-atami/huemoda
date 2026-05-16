@@ -5,7 +5,7 @@ import {
   removeFilterFromChain,
   toggleFilterState,
   updateFilterParameterState,
-} from "./model";
+} from ".";
 
 describe("filter chain model", () => {
   it("creates unadded, disabled filters with default parameters", () => {

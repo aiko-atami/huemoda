@@ -1,0 +1,5 @@
+# HueModa
+
+HueModa is a browser-based photo editor for loading an image, previewing Pixi-powered filters, and exporting the result.
+
+- [Application](/)

@@ -1,7 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useId, useState } from "react";
 import { Download } from "lucide-react";
 import { useUnit } from "effector-react";
-import { $loadedImage } from "../../../entities/image/model";
+import { $loadedImage } from "../../../entities/image";
 import { downloadBlob } from "../../../shared/lib/download";
 import type { ExportMimeType } from "../../../shared/lib/pixi/PixiPhotoRenderer";
 import { Button } from "../../../shared/ui";
@@ -12,6 +12,7 @@ type ExportButtonProps = {
 };
 
 export function ExportButton({ disabled, exportImage }: ExportButtonProps) {
+  const formatSelectId = useId();
   const image = useUnit($loadedImage);
   const [format, setFormat] = useState<ExportMimeType>("image/png");
   const [isExporting, setIsExporting] = useState(false);
@@ -38,8 +39,10 @@ export function ExportButton({ disabled, exportImage }: ExportButtonProps) {
   return (
     <div className="export-control">
       <select
+        id={formatSelectId}
         className="format-select"
         aria-label="Export format"
+        name="export-format"
         value={format}
         onChange={(event) => setFormat(event.target.value as ExportMimeType)}
         disabled={disabled || isExporting}

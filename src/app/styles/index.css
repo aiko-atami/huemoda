@@ -7,7 +7,7 @@
   --surface-bright: #2e2749;
   --text: #e9e1ff;
   --text-muted: #aea6cc;
-  --text-dim: #787194;
+  --text-dim: #8f88ad;
   --outline: #4a4464;
   --outline-strong: #787194;
   --primary: #cdcdff;
@@ -67,6 +67,7 @@ button {
 
 .app-shell {
   min-height: 100svh;
+  isolation: isolate;
 }
 
 .editor-shell {
@@ -163,7 +164,8 @@ button {
   background-size: 32px 32px;
 }
 
-.canvas-stage__pixi {
+.canvas-stage__pixi,
+.canvas-stage__loading {
   position: absolute;
   inset: 0;
 }
@@ -325,13 +327,31 @@ button {
   width: 100%;
 }
 
-.filter-picker {
-  position: absolute;
+.filter-picker__backdrop {
+  position: fixed;
   inset: 0;
-  z-index: 10;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.filter-picker__viewport {
+  position: fixed;
+  inset: 0;
+  z-index: 21;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.filter-picker {
+  position: relative;
   display: grid;
+  width: min(var(--panel-width), 100vw);
+  height: 100svh;
   grid-template-rows: auto minmax(0, 1fr);
+  border-left: 1px solid var(--outline);
   background: var(--surface);
+  pointer-events: auto;
 }
 
 .filter-picker__header {
@@ -345,10 +365,11 @@ button {
   background: var(--surface-low);
 }
 
-.filter-picker__header h3 {
+.filter-picker__title {
   margin: 0;
   font-size: 18px;
   font-weight: 700;
+  line-height: 24px;
 }
 
 .filter-picker__close {
@@ -794,6 +815,10 @@ button {
     border-left: 0;
   }
 
+  .filter-picker {
+    width: min(420px, 100vw);
+  }
+
   .filter-list {
     overflow: visible;
   }
@@ -824,6 +849,11 @@ button {
 
   .canvas-stage {
     min-height: 430px;
+  }
+
+  .filter-picker {
+    width: 100vw;
+    border-left: 0;
   }
 }
 

@@ -1,26 +1,29 @@
-import { useCallback, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useUnit } from "effector-react";
 import {
   $loadedImage,
   formatFileSize,
   imageCleared,
+  type LoadedImage,
   releaseLoadedImage,
-} from "../../../entities/image/model";
-import {
-  $filterChain,
-  filtersReset,
-  toPixiFilterValues,
-} from "../../../entities/filter-chain/model";
+} from "../../../entities/image";
+import { $filterChain, filtersReset, toPixiFilterValues } from "../../../entities/filter-chain";
 import { ExportButton } from "../../../features/export-image";
 import { ImageUploadButton } from "../../../features/image-upload";
 import { FilterPanel } from "../../../features/filter-controls";
 import { Button } from "../../../shared/ui";
-import { PixiPhotoRenderer, type ExportMimeType } from "../../../shared/lib/pixi/PixiPhotoRenderer";
-import { PixiCanvas } from "./PixiCanvas";
+import type { ExportMimeType, PixiPhotoRenderer } from "../../../shared/lib/pixi/PixiPhotoRenderer";
+
+const PixiCanvas = lazy(async () => {
+  const module = await import("./PixiCanvas");
+
+  return { default: module.PixiCanvas };
+});
 
 export function EditorWorkspace() {
   const rendererRef = useRef<PixiPhotoRenderer | null>(null);
+  const latestImageRef = useRef<LoadedImage | null>(null);
   const [isRendererReady, setIsRendererReady] = useState(false);
   const { filterChain, image, clearImage, resetFilters } = useUnit({
     filterChain: $filterChain,
@@ -29,6 +32,17 @@ export function EditorWorkspace() {
     resetFilters: filtersReset,
   });
   const pixiFilterValues = toPixiFilterValues(filterChain);
+
+  useEffect(() => {
+    latestImageRef.current = image;
+  }, [image]);
+
+  useEffect(
+    () => () => {
+      releaseLoadedImage(latestImageRef.current);
+    },
+    [],
+  );
 
   const handleRendererReady = useCallback((renderer: PixiPhotoRenderer | null) => {
     rendererRef.current = renderer;
@@ -91,11 +105,13 @@ export function EditorWorkspace() {
         </header>
 
         <section className="canvas-stage" aria-label="Image preview">
-          <PixiCanvas
-            image={image}
-            filterValues={pixiFilterValues}
-            onRendererReady={handleRendererReady}
-          />
+          <Suspense fallback={<div className="canvas-stage__loading" aria-hidden="true" />}>
+            <PixiCanvas
+              image={image}
+              filterValues={pixiFilterValues}
+              onRendererReady={handleRendererReady}
+            />
+          </Suspense>
           {image === null ? (
             <div className="canvas-empty">
               <ImageUploadButton variant="empty" />

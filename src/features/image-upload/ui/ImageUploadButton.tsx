@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { Upload } from "lucide-react";
 import { useUnit } from "effector-react";
@@ -7,14 +7,15 @@ import {
   createLoadedImage,
   imageSelected,
   releaseLoadedImage,
-} from "../../../entities/image/model";
-import { filtersReset } from "../../../entities/filter-chain/model";
+} from "../../../entities/image";
+import { filtersReset } from "../../../entities/filter-chain";
 
 type ImageUploadButtonProps = {
   variant?: "compact" | "empty";
 };
 
 export function ImageUploadButton({ variant = "compact" }: ImageUploadButtonProps) {
+  const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { currentImage, selectImage, resetFilters } = useUnit({
@@ -67,6 +68,7 @@ export function ImageUploadButton({ variant = "compact" }: ImageUploadButtonProp
 
   return (
     <label
+      htmlFor={inputId}
       className={["upload-button", `upload-button--${variant}`, isDragging ? "is-dragging" : ""]
         .filter(Boolean)
         .join(" ")}
@@ -74,7 +76,14 @@ export function ImageUploadButton({ variant = "compact" }: ImageUploadButtonProp
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
     >
-      <input ref={inputRef} type="file" accept="image/*" onChange={handleChange} />
+      <input
+        id={inputId}
+        ref={inputRef}
+        type="file"
+        name="image"
+        accept="image/*"
+        onChange={handleChange}
+      />
       <Upload size={variant === "empty" ? 28 : 16} aria-hidden="true" />
       <span>{currentImage === null ? "Open image" : "Replace image"}</span>
     </label>
