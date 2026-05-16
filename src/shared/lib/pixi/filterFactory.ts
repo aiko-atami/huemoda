@@ -1,6 +1,7 @@
 import { NoiseFilter } from "pixi.js";
-import type { Filter } from "pixi.js";
+import type { Filter, Texture } from "pixi.js";
 import { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
+import { LutFilter } from "./LutFilter";
 import {
   AdvancedBloomFilter,
   AdjustmentFilter,
@@ -17,6 +18,7 @@ import type { PixiFilterValues } from "./filterTypes";
 
 export type PixiFilterContext = {
   height: number;
+  lutTextures?: ReadonlyMap<string, Texture>;
   width: number;
 };
 
@@ -34,6 +36,7 @@ export function createPixiFilters(
     glow,
     grain,
     lightLeak,
+    lut,
     motionBlur,
     noise,
     tone,
@@ -48,6 +51,19 @@ export function createPixiFilters(
         saturation: tone.saturation,
       }),
     );
+  }
+
+  if (lut.enabled && lut.intensity > 0) {
+    const lutTexture = context?.lutTextures?.get(lut.presetId);
+
+    if (lutTexture !== undefined) {
+      filters.push(
+        new LutFilter({
+          intensity: lut.intensity,
+          texture: lutTexture,
+        }),
+      );
+    }
   }
 
   if (blur.enabled && blur.strength > 0) {

@@ -7,6 +7,11 @@ export type PixiFilterValues = {
     enabled: boolean;
     intensity: number;
   };
+  lut: {
+    enabled: boolean;
+    intensity: number;
+    presetId: string;
+  };
   lightLeak: {
     enabled: boolean;
     intensity: number;
@@ -88,6 +93,11 @@ export function createEmptyPixiFilterValues(): PixiFilterValues {
     grain: {
       enabled: false,
       intensity: 0,
+    },
+    lut: {
+      enabled: false,
+      intensity: 0.8,
+      presetId: "warmEditorial",
     },
     lightLeak: {
       enabled: false,

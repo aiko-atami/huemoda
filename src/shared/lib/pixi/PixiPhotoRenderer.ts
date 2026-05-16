@@ -1,7 +1,8 @@
-import { Application, Container, Rectangle, RenderTexture, Sprite, Texture } from "pixi.js";
+import { Application, Assets, Container, Rectangle, RenderTexture, Sprite, Texture } from "pixi.js";
 import type { Filter } from "pixi.js";
 import { createPixiFilters } from "./filterFactory";
 import { createEmptyPixiFilterValues, type PixiFilterValues } from "./filterTypes";
+import { LUT_PRESETS } from "./lutPresets";
 
 export type ExportMimeType = "image/png" | "image/jpeg";
 
@@ -43,6 +44,7 @@ export class PixiPhotoRenderer {
   private loadToken = 0;
   private filterValues: PixiFilterValues = createEmptyPixiFilterValues();
   private activeFilters: Filter[] = [];
+  private readonly lutTextures = new Map<string, Texture>();
 
   constructor(host: HTMLElement) {
     this.host = host;
@@ -200,6 +202,8 @@ export class PixiPhotoRenderer {
       powerPreference: "high-performance",
     });
 
+    await this.loadLutTextures();
+
     this.initialized = true;
 
     if (this.disposed) {
@@ -268,6 +272,7 @@ export class PixiPhotoRenderer {
     this.activeFilters = createPixiFilters(this.filterValues, {
       width: this.texture.width,
       height: this.texture.height,
+      lutTextures: this.lutTextures,
     });
     this.sourceSprite.filters = this.activeFilters.length === 0 ? null : this.activeFilters;
     this.updateFilteredTexture();
@@ -360,8 +365,31 @@ export class PixiPhotoRenderer {
 
   private destroyApp(): void {
     this.app?.destroy(true, { children: true });
+    this.lutTextures.clear();
     this.app = null;
     this.initialized = false;
+  }
+
+  private async loadLutTextures(): Promise<void> {
+    const results = await Promise.allSettled(
+      LUT_PRESETS.map(async (preset) => {
+        const texture = await Assets.load<Texture>(preset.file);
+
+        texture.source.style.scaleMode = "linear";
+        texture.source.style.addressMode = "clamp-to-edge";
+        texture.source.autoGenerateMipmaps = false;
+        texture.source.style.update();
+        texture.source.update();
+
+        return { presetId: preset.id, texture };
+      }),
+    );
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        this.lutTextures.set(result.value.presetId, result.value.texture);
+      }
+    }
   }
 }
 

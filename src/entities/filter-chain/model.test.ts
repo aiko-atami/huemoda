@@ -3,6 +3,7 @@ import {
   addFilterToChain,
   createInitialFilterState,
   removeFilterFromChain,
+  toPixiFilterValues,
   toggleFilterState,
   updateFilterParameterState,
 } from ".";
@@ -14,6 +15,8 @@ describe("filter chain model", () => {
     expect(state.tone.added).toBe(false);
     expect(state.tone.enabled).toBe(false);
     expect(state.tone.parameters.brightness).toBe(1);
+    expect(state.lut.parameters.presetId).toBe("warmEditorial");
+    expect(state.lut.parameters.intensity).toBe(0.8);
     expect(state.grain.parameters.intensity).toBe(0.14);
   });
 
@@ -52,5 +55,44 @@ describe("filter chain model", () => {
     });
 
     expect(nextState.lightLeak.parameters.intensity).toBe(0.36);
+  });
+
+  it("updates valid select parameter values", () => {
+    const state = createInitialFilterState();
+    const nextState = updateFilterParameterState(state, {
+      filterId: "lut",
+      parameterId: "presetId",
+      value: "coolFade",
+    });
+
+    expect(nextState.lut.parameters.presetId).toBe("coolFade");
+  });
+
+  it("ignores invalid select values without mutating state", () => {
+    const state = createInitialFilterState();
+    const nextState = updateFilterParameterState(state, {
+      filterId: "lut",
+      parameterId: "presetId",
+      value: "unknown",
+    });
+
+    expect(nextState).toBe(state);
+    expect(nextState.lut.parameters.presetId).toBe("warmEditorial");
+  });
+
+  it("maps LUT values to Pixi filter values", () => {
+    const state = updateFilterParameterState(addFilterToChain(createInitialFilterState(), "lut"), {
+      filterId: "lut",
+      parameterId: "presetId",
+      value: "neutral",
+    });
+
+    const pixiValues = toPixiFilterValues(state);
+
+    expect(pixiValues.lut).toEqual({
+      enabled: true,
+      intensity: 0.8,
+      presetId: "neutral",
+    });
   });
 });

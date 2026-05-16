@@ -1,8 +1,11 @@
 import { createEvent, createStore } from "effector";
 import type { PixiFilterValues } from "../../shared/lib/pixi/filterTypes";
+import { DEFAULT_LUT_PRESET_ID, LUT_PRESETS } from "../../shared/lib/pixi/lutPresets";
+import type { LutPreset, LutPresetId } from "../../shared/lib/pixi/lutPresets";
 
 const FILTER_IDS = [
   "tone",
+  "lut",
   "blur",
   "grain",
   "lightLeak",
@@ -18,15 +21,34 @@ const FILTER_IDS = [
 
 export type FilterId = (typeof FILTER_IDS)[number];
 
-export type FilterParameterDefinition = {
+export { DEFAULT_LUT_PRESET_ID, LUT_PRESETS };
+export type { LutPreset, LutPresetId };
+
+export type RangeFilterParameterDefinition = {
   defaultValue: number;
   id: string;
   label: string;
   max: number;
   min: number;
   step: number;
+  type: "range";
   unit?: string;
 };
+
+export type SelectFilterParameterDefinition = {
+  defaultValue: string;
+  id: string;
+  label: string;
+  options: readonly {
+    label: string;
+    value: string;
+  }[];
+  type: "select";
+};
+
+export type FilterParameterDefinition =
+  | RangeFilterParameterDefinition
+  | SelectFilterParameterDefinition;
 
 export type FilterDefinition = {
   description: string;
@@ -38,7 +60,7 @@ export type FilterDefinition = {
 export type FilterState = {
   added: boolean;
   enabled: boolean;
-  parameters: Record<string, number>;
+  parameters: Record<string, number | string>;
 };
 
 export type FilterChainState = Record<FilterId, FilterState>;
@@ -46,7 +68,7 @@ export type FilterChainState = Record<FilterId, FilterState>;
 export type FilterParameterChangedPayload = {
   filterId: FilterId;
   parameterId: string;
-  value: number;
+  value: number | string;
 };
 
 export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
@@ -58,6 +80,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "brightness",
         label: "Brightness",
+        type: "range",
         min: 0.6,
         max: 1.4,
         step: 0.01,
@@ -66,6 +89,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "contrast",
         label: "Contrast",
+        type: "range",
         min: 0.6,
         max: 1.6,
         step: 0.01,
@@ -74,10 +98,37 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "saturation",
         label: "Saturation",
+        type: "range",
         min: 0,
         max: 2,
         step: 0.01,
         defaultValue: 1,
+      },
+    ],
+  },
+  {
+    id: "lut",
+    title: "LUT",
+    description: "Built-in color-grade atlas presets.",
+    parameters: [
+      {
+        id: "presetId",
+        label: "Preset",
+        type: "select",
+        defaultValue: DEFAULT_LUT_PRESET_ID,
+        options: LUT_PRESETS.map((preset) => ({
+          label: preset.label,
+          value: preset.id,
+        })),
+      },
+      {
+        id: "intensity",
+        label: "Intensity",
+        type: "range",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        defaultValue: 0.8,
       },
     ],
   },
@@ -89,6 +140,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "strength",
         label: "Strength",
+        type: "range",
         min: 0,
         max: 18,
         step: 0.5,
@@ -105,6 +157,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "intensity",
         label: "Intensity",
+        type: "range",
         min: 0,
         max: 0.55,
         step: 0.01,
@@ -120,6 +173,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "intensity",
         label: "Intensity",
+        type: "range",
         min: 0,
         max: 0.36,
         step: 0.01,
@@ -128,6 +182,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "warmth",
         label: "Warmth",
+        type: "range",
         min: 0,
         max: 100,
         step: 1,
@@ -144,6 +199,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "threshold",
         label: "Threshold",
+        type: "range",
         min: 0,
         max: 1,
         step: 0.01,
@@ -152,6 +208,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "bloomScale",
         label: "Bloom Scale",
+        type: "range",
         min: 0,
         max: 3,
         step: 0.05,
@@ -161,6 +218,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "brightness",
         label: "Brightness",
+        type: "range",
         min: 0,
         max: 2,
         step: 0.05,
@@ -169,6 +227,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "blur",
         label: "Blur",
+        type: "range",
         min: 0,
         max: 20,
         step: 0.5,
@@ -185,6 +244,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "scale",
         label: "Scale",
+        type: "range",
         min: 0.3,
         max: 5,
         step: 0.1,
@@ -194,6 +254,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "angle",
         label: "Angle",
+        type: "range",
         min: 0,
         max: 360,
         step: 1,
@@ -210,6 +271,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "slices",
         label: "Slices",
+        type: "range",
         min: 2,
         max: 20,
         step: 1,
@@ -219,6 +281,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "offset",
         label: "Offset",
+        type: "range",
         min: 0,
         max: 200,
         step: 1,
@@ -228,6 +291,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "direction",
         label: "Direction",
+        type: "range",
         min: 0,
         max: 360,
         step: 1,
@@ -244,6 +308,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "distance",
         label: "Distance",
+        type: "range",
         min: 2,
         max: 30,
         step: 1,
@@ -253,6 +318,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "outerStrength",
         label: "Outer Strength",
+        type: "range",
         min: 0,
         max: 10,
         step: 0.1,
@@ -262,6 +328,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "innerStrength",
         label: "Inner Strength",
+        type: "range",
         min: 0,
         max: 5,
         step: 0.1,
@@ -278,6 +345,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "velocityX",
         label: "Velocity X",
+        type: "range",
         min: -50,
         max: 50,
         step: 1,
@@ -287,6 +355,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "velocityY",
         label: "Velocity Y",
+        type: "range",
         min: -50,
         max: 50,
         step: 1,
@@ -296,6 +365,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "kernelSize",
         label: "Kernel Size",
+        type: "range",
         min: 5,
         max: 25,
         step: 2,
@@ -312,6 +382,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "strength",
         label: "Strength",
+        type: "range",
         min: 0,
         max: 1,
         step: 0.01,
@@ -320,6 +391,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "noiseScale",
         label: "Scale",
+        type: "range",
         min: 1,
         max: 50,
         step: 1,
@@ -336,6 +408,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "strength",
         label: "Strength",
+        type: "range",
         min: 0,
         max: 0.5,
         step: 0.005,
@@ -344,6 +417,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "innerRadius",
         label: "Inner Radius",
+        type: "range",
         min: 0,
         max: 500,
         step: 5,
@@ -360,6 +434,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "intensity",
         label: "Intensity",
+        type: "range",
         min: 0,
         max: 1,
         step: 0.01,
@@ -368,6 +443,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "offset",
         label: "Offset",
+        type: "range",
         min: 0,
         max: 0.05,
         step: 0.001,
@@ -376,6 +452,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       {
         id: "angle",
         label: "Angle",
+        type: "range",
         min: -180,
         max: 180,
         step: 1,
@@ -466,13 +543,19 @@ export function updateFilterParameterState(
     return state;
   }
 
+  const nextValue = resolveParameterValue(parameter, payload.value);
+
+  if (nextValue === undefined) {
+    return state;
+  }
+
   return {
     ...state,
     [payload.filterId]: {
       ...state[payload.filterId],
       parameters: {
         ...state[payload.filterId].parameters,
-        [payload.parameterId]: clamp(payload.value, parameter.min, parameter.max),
+        [payload.parameterId]: nextValue,
       },
     },
   };
@@ -497,7 +580,10 @@ export function findFilterParameterDefinition(
   );
 }
 
-export function formatParameterValue(parameter: FilterParameterDefinition, value: number): string {
+export function formatParameterValue(
+  parameter: RangeFilterParameterDefinition,
+  value: number,
+): string {
   if (parameter.unit === "%") {
     return `${Math.round(value)}%`;
   }
@@ -525,80 +611,85 @@ export function toPixiFilterValues(filterChain: FilterChainState): PixiFilterVal
   return {
     tone: {
       enabled: filterChain.tone.enabled,
-      brightness: filterChain.tone.parameters.brightness,
-      contrast: filterChain.tone.parameters.contrast,
-      saturation: filterChain.tone.parameters.saturation,
+      brightness: getNumericParameter(filterChain.tone, "brightness"),
+      contrast: getNumericParameter(filterChain.tone, "contrast"),
+      saturation: getNumericParameter(filterChain.tone, "saturation"),
+    },
+    lut: {
+      enabled: filterChain.lut.enabled,
+      intensity: getNumericParameter(filterChain.lut, "intensity"),
+      presetId: getStringParameter(filterChain.lut, "presetId"),
     },
     blur: {
       enabled: filterChain.blur.enabled,
-      strength: filterChain.blur.parameters.strength,
+      strength: getNumericParameter(filterChain.blur, "strength"),
     },
     grain: {
       enabled: filterChain.grain.enabled,
-      intensity: filterChain.grain.parameters.intensity,
+      intensity: getNumericParameter(filterChain.grain, "intensity"),
     },
     lightLeak: {
       enabled: filterChain.lightLeak.enabled,
-      intensity: filterChain.lightLeak.parameters.intensity,
-      warmth: filterChain.lightLeak.parameters.warmth,
+      intensity: getNumericParameter(filterChain.lightLeak, "intensity"),
+      warmth: getNumericParameter(filterChain.lightLeak, "warmth"),
     },
     advancedBloom: {
       enabled: filterChain.advancedBloom.enabled,
-      threshold: filterChain.advancedBloom.parameters.threshold,
-      bloomScale: filterChain.advancedBloom.parameters.bloomScale,
-      brightness: filterChain.advancedBloom.parameters.brightness,
-      blur: filterChain.advancedBloom.parameters.blur,
+      threshold: getNumericParameter(filterChain.advancedBloom, "threshold"),
+      bloomScale: getNumericParameter(filterChain.advancedBloom, "bloomScale"),
+      brightness: getNumericParameter(filterChain.advancedBloom, "brightness"),
+      blur: getNumericParameter(filterChain.advancedBloom, "blur"),
     },
     dot: {
       enabled: filterChain.dot.enabled,
-      scale: filterChain.dot.parameters.scale,
-      angle: filterChain.dot.parameters.angle,
+      scale: getNumericParameter(filterChain.dot, "scale"),
+      angle: getNumericParameter(filterChain.dot, "angle"),
     },
     glitch: {
       enabled: filterChain.glitch.enabled,
-      slices: filterChain.glitch.parameters.slices,
-      offset: filterChain.glitch.parameters.offset,
-      direction: filterChain.glitch.parameters.direction,
+      slices: getNumericParameter(filterChain.glitch, "slices"),
+      offset: getNumericParameter(filterChain.glitch, "offset"),
+      direction: getNumericParameter(filterChain.glitch, "direction"),
     },
     glow: {
       enabled: filterChain.glow.enabled,
-      distance: filterChain.glow.parameters.distance,
-      outerStrength: filterChain.glow.parameters.outerStrength,
-      innerStrength: filterChain.glow.parameters.innerStrength,
+      distance: getNumericParameter(filterChain.glow, "distance"),
+      outerStrength: getNumericParameter(filterChain.glow, "outerStrength"),
+      innerStrength: getNumericParameter(filterChain.glow, "innerStrength"),
     },
     motionBlur: {
       enabled: filterChain.motionBlur.enabled,
-      velocityX: filterChain.motionBlur.parameters.velocityX,
-      velocityY: filterChain.motionBlur.parameters.velocityY,
-      kernelSize: filterChain.motionBlur.parameters.kernelSize,
+      velocityX: getNumericParameter(filterChain.motionBlur, "velocityX"),
+      velocityY: getNumericParameter(filterChain.motionBlur, "velocityY"),
+      kernelSize: getNumericParameter(filterChain.motionBlur, "kernelSize"),
     },
     noise: {
       enabled: filterChain.noise.enabled,
-      strength: filterChain.noise.parameters.strength,
-      noiseScale: filterChain.noise.parameters.noiseScale,
+      strength: getNumericParameter(filterChain.noise, "strength"),
+      noiseScale: getNumericParameter(filterChain.noise, "noiseScale"),
     },
     zoomBlur: {
       enabled: filterChain.zoomBlur.enabled,
-      strength: filterChain.zoomBlur.parameters.strength,
-      innerRadius: filterChain.zoomBlur.parameters.innerRadius,
+      strength: getNumericParameter(filterChain.zoomBlur, "strength"),
+      innerRadius: getNumericParameter(filterChain.zoomBlur, "innerRadius"),
     },
     chromaticAberration: {
       enabled: filterChain.chromaticAberration.enabled,
-      offsetX: filterChain.chromaticAberration.parameters.offset,
+      offsetX: getNumericParameter(filterChain.chromaticAberration, "offset"),
       offsetY: 0,
       redX: 0,
       redY: 0,
       blueX: 0,
       blueY: 0,
-      radial: filterChain.chromaticAberration.parameters.intensity,
-      twist: filterChain.chromaticAberration.parameters.angle,
+      radial: getNumericParameter(filterChain.chromaticAberration, "intensity"),
+      twist: getNumericParameter(filterChain.chromaticAberration, "angle"),
       centerX: 0.5,
       centerY: 0.5,
     },
   };
 }
 
-function createDefaultParameters(definition: FilterDefinition): Record<string, number> {
+function createDefaultParameters(definition: FilterDefinition): Record<string, number | string> {
   return Object.fromEntries(
     definition.parameters.map((parameter) => [parameter.id, parameter.defaultValue]),
   );
@@ -606,4 +697,35 @@ function createDefaultParameters(definition: FilterDefinition): Record<string, n
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function resolveParameterValue(
+  parameter: FilterParameterDefinition,
+  value: number | string,
+): number | string | undefined {
+  if (parameter.type === "range") {
+    const numericValue = Number(value);
+
+    return Number.isFinite(numericValue)
+      ? clamp(numericValue, parameter.min, parameter.max)
+      : undefined;
+  }
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  return parameter.options.some((option) => option.value === value) ? value : undefined;
+}
+
+function getNumericParameter(filterState: FilterState, parameterId: string): number {
+  const value = filterState.parameters[parameterId];
+
+  return typeof value === "number" ? value : 0;
+}
+
+function getStringParameter(filterState: FilterState, parameterId: string): string {
+  const value = filterState.parameters[parameterId];
+
+  return typeof value === "string" ? value : "";
 }

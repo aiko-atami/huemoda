@@ -3,6 +3,8 @@ import { Dialog } from "@base-ui/react/dialog";
 import { ChevronDown, Plus, SlidersHorizontal, X } from "lucide-react";
 import { useUnit } from "effector-react";
 import {
+  type FilterParameterDefinition,
+  type FilterParameterChangedPayload,
   $addedFilterDefinitions,
   $filterChain,
   $hasActiveFilters,
@@ -15,7 +17,7 @@ import {
   filtersReset,
   formatParameterValue,
 } from "../../../entities/filter-chain";
-import { Button, Slider, Toggle } from "../../../shared/ui";
+import { Button, SelectControl, Slider, Toggle } from "../../../shared/ui";
 
 export function FilterPanel() {
   const [openFilterId, setOpenFilterId] = useState<FilterId | null>(null);
@@ -124,28 +126,15 @@ export function FilterPanel() {
 
                   {isOpen ? (
                     <div className="filter-section__body">
-                      {definition.parameters.map((parameter) => (
-                        <Slider
-                          key={parameter.id}
-                          label={parameter.label}
-                          min={parameter.min}
-                          max={parameter.max}
-                          step={parameter.step}
-                          value={filterState.parameters[parameter.id]}
-                          valueLabel={formatParameterValue(
-                            parameter,
-                            filterState.parameters[parameter.id],
-                          )}
-                          disabled={!filterState.enabled}
-                          onValueChange={(value) =>
-                            setParameter({
-                              filterId: definition.id,
-                              parameterId: parameter.id,
-                              value,
-                            })
-                          }
-                        />
-                      ))}
+                      {definition.parameters.map((parameter) =>
+                        renderParameterControl({
+                          disabled: !filterState.enabled,
+                          filterId: definition.id,
+                          onChange: setParameter,
+                          parameter,
+                          value: filterState.parameters[parameter.id],
+                        }),
+                      )}
                     </div>
                   ) : null}
                 </section>
@@ -221,5 +210,60 @@ export function FilterPanel() {
         </Dialog.Portal>
       </Dialog.Root>
     </aside>
+  );
+}
+
+function renderParameterControl({
+  disabled,
+  filterId,
+  onChange,
+  parameter,
+  value,
+}: {
+  disabled: boolean;
+  filterId: FilterId;
+  onChange: (payload: FilterParameterChangedPayload) => void;
+  parameter: FilterParameterDefinition;
+  value: number | string;
+}) {
+  if (parameter.type === "select") {
+    return (
+      <SelectControl
+        key={parameter.id}
+        label={parameter.label}
+        options={parameter.options}
+        value={typeof value === "string" ? value : parameter.defaultValue}
+        disabled={disabled}
+        onValueChange={(nextValue) =>
+          onChange({
+            filterId,
+            parameterId: parameter.id,
+            value: nextValue,
+          })
+        }
+      />
+    );
+  }
+
+  const numericValue = typeof value === "number" ? value : parameter.defaultValue;
+
+  return (
+    <Slider
+      key={parameter.id}
+      label={parameter.label}
+      min={parameter.min}
+      max={parameter.max}
+      step={parameter.step}
+      value={numericValue}
+      valueLabel={formatParameterValue(parameter, numericValue)}
+      disabled={disabled}
+      onValueChange={(nextValue) =>
+        onChange({
+          filterId,
+          parameterId: parameter.id,
+          value: nextValue,
+        })
+      }
+    />
   );
 }

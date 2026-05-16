@@ -682,7 +682,8 @@ button {
   color: var(--text-muted);
 }
 
-.slider-control__header {
+.slider-control__header,
+.select-control__label {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -760,6 +761,102 @@ button {
 .slider-control input:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+.select-control {
+  display: grid;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.select-control__trigger {
+  display: grid;
+  width: 100%;
+  min-height: 34px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+  background: var(--surface-high);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.select-control__trigger:hover:not(:disabled) {
+  background: var(--surface-highest);
+  border-color: var(--outline-strong);
+}
+
+.select-control__trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.select-control__trigger:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.select-control__trigger [data-placeholder],
+.select-control__icon {
+  color: var(--text-dim);
+}
+
+.select-control__positioner {
+  z-index: 30;
+}
+
+.select-control__popup {
+  min-width: var(--anchor-width);
+  max-height: min(260px, var(--available-height));
+  overflow: auto;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+  background: var(--surface-highest);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+}
+
+.select-control__list {
+  display: grid;
+  gap: 2px;
+  padding: 4px;
+}
+
+.select-control__item {
+  display: grid;
+  min-height: 30px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  outline: 0;
+}
+
+.select-control__item[data-highlighted] {
+  background: var(--surface-bright);
+  color: var(--text);
+}
+
+.select-control__item[data-selected] {
+  color: var(--secondary);
+}
+
+.select-control__indicator {
+  display: grid;
+  place-items: center;
+  color: var(--secondary);
 }
 
 @media (max-width: 1180px) {
