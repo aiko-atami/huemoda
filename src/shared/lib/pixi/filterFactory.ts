@@ -15,7 +15,15 @@ import {
 } from "pixi-filters";
 import type { PixiFilterValues } from "./filterTypes";
 
-export function createPixiFilters(filterChain: PixiFilterValues): Filter[] {
+export type PixiFilterContext = {
+  height: number;
+  width: number;
+};
+
+export function createPixiFilters(
+  filterChain: PixiFilterValues,
+  context?: PixiFilterContext,
+): Filter[] {
   const filters: Filter[] = [];
   const {
     advancedBloom,
@@ -135,6 +143,7 @@ export function createPixiFilters(filterChain: PixiFilterValues): Filter[] {
     filters.push(
       new ZoomBlurFilter({
         strength: zoomBlur.strength,
+        center: context === undefined ? undefined : { x: context.width / 2, y: context.height / 2 },
         innerRadius: zoomBlur.innerRadius,
       }),
     );

@@ -1,4 +1,4 @@
-import { Application, Container, Sprite, Texture } from "pixi.js";
+import { Application, Container, Rectangle, RenderTexture, Sprite, Texture } from "pixi.js";
 import type { Filter } from "pixi.js";
 import { createPixiFilters } from "./filterFactory";
 import { createEmptyPixiFilterValues, type PixiFilterValues } from "./filterTypes";
@@ -33,8 +33,10 @@ export class PixiPhotoRenderer {
   private readonly readyPromise: Promise<void>;
   private app: Application | null = null;
   private readonly viewport = new Container();
-  private sprite: Sprite | null = null;
+  private sourceSprite: Sprite | null = null;
+  private displaySprite: Sprite | null = null;
   private texture: Texture | null = null;
+  private filteredTexture: RenderTexture | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private disposed = false;
   private initialized = false;
@@ -86,9 +88,10 @@ export class PixiPhotoRenderer {
     }
 
     this.texture = Texture.from(image, true);
-    this.sprite = new Sprite(this.texture);
-    this.sprite.anchor.set(0.5);
-    this.viewport.addChild(this.sprite);
+    this.sourceSprite = new Sprite(this.texture);
+    this.displaySprite = new Sprite(this.texture);
+    this.displaySprite.anchor.set(0.5);
+    this.viewport.addChild(this.displaySprite);
     this.applyFilters();
     this.resetViewport();
     this.layoutSprite();
@@ -96,7 +99,7 @@ export class PixiPhotoRenderer {
   }
 
   wheelZoom(deltaY: number, cx: number, cy: number): void {
-    if (this.sprite === null) {
+    if (this.displaySprite === null) {
       return;
     }
 
@@ -116,7 +119,7 @@ export class PixiPhotoRenderer {
   }
 
   pan(dx: number, dy: number): void {
-    if (this.sprite === null) {
+    if (this.displaySprite === null) {
       return;
     }
 
@@ -149,10 +152,9 @@ export class PixiPhotoRenderer {
       throw new Error("Nothing to export");
     }
 
-    const exportSprite = new Sprite(this.texture);
-    const filters = createPixiFilters(this.filterValues);
+    this.updateFilteredTexture();
 
-    exportSprite.filters = filters;
+    const exportSprite = new Sprite(this.filteredTexture ?? this.texture);
 
     const canvas = this.app.renderer.extract.canvas({
       target: exportSprite,
@@ -162,7 +164,6 @@ export class PixiPhotoRenderer {
     });
 
     exportSprite.destroy();
-    destroyFilters(filters);
 
     return canvasToBlob(canvas, options.mimeType, options.quality);
   }
@@ -239,7 +240,7 @@ export class PixiPhotoRenderer {
   }
 
   private layoutSprite(): void {
-    if (this.app === null || this.sprite === null || this.texture === null) {
+    if (this.app === null || this.displaySprite === null || this.texture === null) {
       return;
     }
 
@@ -254,18 +255,22 @@ export class PixiPhotoRenderer {
       1,
     );
 
-    this.sprite.scale.set(Math.max(scale, 0.05));
-    this.sprite.position.set(rendererWidth / 2, rendererHeight / 2);
+    this.displaySprite.scale.set(Math.max(scale, 0.05));
+    this.displaySprite.position.set(rendererWidth / 2, rendererHeight / 2);
   }
 
   private applyFilters(): void {
-    if (this.sprite === null) {
+    if (this.sourceSprite === null || this.texture === null) {
       return;
     }
 
     destroyFilters(this.activeFilters);
-    this.activeFilters = createPixiFilters(this.filterValues);
-    this.sprite.filters = this.activeFilters;
+    this.activeFilters = createPixiFilters(this.filterValues, {
+      width: this.texture.width,
+      height: this.texture.height,
+    });
+    this.sourceSprite.filters = this.activeFilters.length === 0 ? null : this.activeFilters;
+    this.updateFilteredTexture();
   }
 
   private resetViewport(): void {
@@ -275,7 +280,7 @@ export class PixiPhotoRenderer {
   }
 
   private clampViewport(): void {
-    if (this.sprite === null || this.app === null || this.texture === null) {
+    if (this.displaySprite === null || this.app === null || this.texture === null) {
       return;
     }
 
@@ -284,8 +289,8 @@ export class PixiPhotoRenderer {
     const vz = this.viewport.scale.x;
 
     // Половина размера спрайта на экране
-    const hw = (this.texture.width * this.sprite.scale.x * vz) / 2;
-    const hh = (this.texture.height * this.sprite.scale.y * vz) / 2;
+    const hw = (this.texture.width * this.displaySprite.scale.x * vz) / 2;
+    const hh = (this.texture.height * this.displaySprite.scale.y * vz) / 2;
 
     // Минимальный overlap: хотя бы столько пикселей изображения должно
     // оставаться видимым при смещении к краю экрана
@@ -306,9 +311,47 @@ export class PixiPhotoRenderer {
   private clearSprite(): void {
     destroyFilters(this.activeFilters);
     this.activeFilters = [];
-    this.sprite?.destroy({ texture: true, textureSource: true });
-    this.sprite = null;
+    this.sourceSprite?.destroy();
+    this.displaySprite?.destroy();
+    this.destroyFilteredTexture();
+    this.texture?.destroy(true);
+    this.sourceSprite = null;
+    this.displaySprite = null;
     this.texture = null;
+  }
+
+  private updateFilteredTexture(): void {
+    if (
+      this.app === null ||
+      this.sourceSprite === null ||
+      this.displaySprite === null ||
+      this.texture === null
+    ) {
+      return;
+    }
+
+    if (this.activeFilters.length === 0) {
+      this.displaySprite.texture = this.texture;
+      this.destroyFilteredTexture();
+      return;
+    }
+
+    const nextTexture = this.app.renderer.textureGenerator.generateTexture({
+      target: this.sourceSprite,
+      frame: new Rectangle(0, 0, this.texture.width, this.texture.height),
+      resolution: 1,
+      antialias: true,
+      clearColor: "#00000000",
+    });
+
+    this.displaySprite.texture = nextTexture;
+    this.destroyFilteredTexture();
+    this.filteredTexture = nextTexture;
+  }
+
+  private destroyFilteredTexture(): void {
+    this.filteredTexture?.destroy(true);
+    this.filteredTexture = null;
   }
 
   private render(): void {
