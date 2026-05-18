@@ -174,6 +174,15 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
         step: 0.01,
         defaultValue: 0.07,
       },
+      {
+        id: "grainSize",
+        label: "Size",
+        type: "range",
+        min: 1,
+        max: 4,
+        step: 0.25,
+        defaultValue: 1.25,
+      },
     ],
   },
   {
@@ -652,6 +661,7 @@ export function toPixiFilterValues(filterChain: FilterChainState): PixiFilterVal
     grain: {
       enabled: filterChain.grain.enabled,
       intensity: getNumericParameter(filterChain.grain, "intensity"),
+      grainSize: getNumericParameter(filterChain.grain, "grainSize"),
     },
     lightLeak: {
       enabled: filterChain.lightLeak.enabled,

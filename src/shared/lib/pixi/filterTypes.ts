@@ -6,6 +6,7 @@ export type PixiFilterValues = {
   grain: {
     enabled: boolean;
     intensity: number;
+    grainSize: number;
   };
   lut: {
     enabled: boolean;
@@ -95,6 +96,7 @@ export function createEmptyPixiFilterValues(): PixiFilterValues {
     grain: {
       enabled: false,
       intensity: 0,
+      grainSize: 1.25,
     },
     lut: {
       enabled: false,

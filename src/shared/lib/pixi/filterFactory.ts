@@ -1,6 +1,6 @@
-import { NoiseFilter } from "pixi.js";
 import type { Filter, Texture } from "pixi.js";
 import { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
+import { GrainFilter } from "./GrainFilter";
 import { LutFilter } from "./LutFilter";
 import {
   AdvancedBloomFilter,
@@ -79,9 +79,10 @@ export function createPixiFilters(
 
   if (grain.enabled && grain.intensity > 0) {
     filters.push(
-      new NoiseFilter({
-        noise: grain.intensity,
-        seed: 0.43,
+      new GrainFilter({
+        intensity: grain.intensity,
+        grainSize: grain.grainSize,
+        seed: Math.random(),
       }),
     );
   }

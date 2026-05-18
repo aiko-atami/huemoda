@@ -18,5 +18,8 @@ export type { CubeLut, ProjectLutPixels } from "./cubeLut";
 export { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
 export type { ChromaticAberrationOptions } from "./ChromaticAberrationFilter";
 
+export { GrainFilter } from "./GrainFilter";
+export type { GrainOptions } from "./GrainFilter";
+
 export { LutFilter } from "./LutFilter";
 export type { LutFilterOptions } from "./LutFilter";
