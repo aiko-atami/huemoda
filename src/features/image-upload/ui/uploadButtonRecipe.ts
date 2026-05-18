@@ -62,6 +62,7 @@ export const uploadButtonRecipe = cva({
         borderRadius: "lg",
         background: "rgba(27, 22, 45, 0.9)",
         color: "text",
+        pointerEvents: "auto",
         "& span": {
           marginTop: "10px",
           fontSize: "16px",

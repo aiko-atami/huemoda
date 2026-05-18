@@ -162,10 +162,6 @@ button {
   pointer-events: none;
 }
 
-.canvas-empty .upload-button {
-  pointer-events: auto;
-}
-
 .filter-panel {
   position: relative;
   display: grid;
