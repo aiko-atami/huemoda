@@ -17,7 +17,7 @@ import {
   filtersReset,
   formatParameterValue,
 } from "../../../entities/filter-chain";
-import { Button, SelectControl, Slider, Toggle } from "../../../shared/ui";
+import { Button, PointPicker, SelectControl, Slider, Toggle } from "../../../shared/ui";
 
 export function FilterPanel() {
   const [openFilterId, setOpenFilterId] = useState<FilterId | null>(null);
@@ -132,7 +132,7 @@ export function FilterPanel() {
                           filterId: definition.id,
                           onChange: setParameter,
                           parameter,
-                          value: filterState.parameters[parameter.id],
+                          parameters: filterState.parameters,
                         }),
                       )}
                     </div>
@@ -218,15 +218,40 @@ function renderParameterControl({
   filterId,
   onChange,
   parameter,
-  value,
+  parameters,
 }: {
   disabled: boolean;
   filterId: FilterId;
   onChange: (payload: FilterParameterChangedPayload) => void;
   parameter: FilterParameterDefinition;
-  value: number | string;
+  parameters: Record<string, number | string>;
 }) {
+  if (parameter.type === "point") {
+    const xValue =
+      typeof parameters[parameter.xId] === "number"
+        ? (parameters[parameter.xId] as number)
+        : parameter.defaultX;
+    const yValue =
+      typeof parameters[parameter.yId] === "number"
+        ? (parameters[parameter.yId] as number)
+        : parameter.defaultY;
+    return (
+      <PointPicker
+        key={parameter.id}
+        label={parameter.label}
+        x={xValue}
+        y={yValue}
+        disabled={disabled}
+        onValueChange={(x, y) => {
+          onChange({ filterId, parameterId: parameter.xId, value: x });
+          onChange({ filterId, parameterId: parameter.yId, value: y });
+        }}
+      />
+    );
+  }
+
   if (parameter.type === "select") {
+    const value = parameters[parameter.id];
     return (
       <SelectControl
         key={parameter.id}
@@ -245,6 +270,7 @@ function renderParameterControl({
     );
   }
 
+  const value = parameters[parameter.id];
   const numericValue = typeof value === "number" ? value : parameter.defaultValue;
 
   return (

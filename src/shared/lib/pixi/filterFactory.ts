@@ -156,11 +156,17 @@ export function createPixiFilters(
   }
 
   if (zoomBlur.enabled) {
+    const shortSide = context ? Math.min(context.width, context.height) : 0;
     filters.push(
       new ZoomBlurFilter({
         strength: zoomBlur.strength,
-        center: context === undefined ? undefined : { x: context.width / 2, y: context.height / 2 },
-        innerRadius: zoomBlur.innerRadius,
+        center: context
+          ? {
+              x: context.width * (zoomBlur.centerX / 100),
+              y: context.height * (zoomBlur.centerY / 100),
+            }
+          : undefined,
+        innerRadius: shortSide * (zoomBlur.innerRadius / 100),
       }),
     );
   }

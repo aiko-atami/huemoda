@@ -1046,6 +1046,95 @@ button {
   color: var(--secondary);
 }
 
+.point-picker {
+  display: grid;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.point-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.point-picker__label {
+  color: var(--text-muted);
+}
+
+.point-picker__value {
+  min-width: 60px;
+  color: var(--secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.point-picker__pad {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(rgba(120, 113, 148, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120, 113, 148, 0.08) 1px, transparent 1px), var(--surface-high);
+  background-size: 25% 25%;
+  cursor: crosshair;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.point-picker__pad::before,
+.point-picker__pad::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  background: rgba(120, 113, 148, 0.22);
+}
+
+.point-picker__pad::before {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+}
+
+.point-picker__pad::after {
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 100%;
+}
+
+.point-picker__pad:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+[aria-disabled="true"] .point-picker__pad {
+  cursor: not-allowed;
+  opacity: 0.44;
+}
+
+.point-picker__crosshair {
+  position: absolute;
+  top: var(--pp-y);
+  left: var(--pp-x);
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
 @media (max-width: 1180px) {
   .editor-shell {
     grid-template-columns: minmax(0, 1fr) 292px;

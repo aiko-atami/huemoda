@@ -59,9 +59,11 @@ export type PixiFilterValues = {
     noiseScale: number;
   };
   zoomBlur: {
+    centerX: number;
+    centerY: number;
     enabled: boolean;
-    strength: number;
     innerRadius: number;
+    strength: number;
   };
   chromaticAberration: {
     enabled: boolean;
@@ -140,9 +142,11 @@ export function createEmptyPixiFilterValues(): PixiFilterValues {
       noiseScale: 10,
     },
     zoomBlur: {
+      centerX: 50,
+      centerY: 50,
       enabled: false,
-      strength: 0.1,
       innerRadius: 0,
+      strength: 0.1,
     },
     chromaticAberration: {
       enabled: false,

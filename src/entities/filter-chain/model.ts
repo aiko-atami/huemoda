@@ -46,9 +46,20 @@ export type SelectFilterParameterDefinition = {
   type: "select";
 };
 
+export type PointFilterParameterDefinition = {
+  defaultX: number;
+  defaultY: number;
+  id: string;
+  label: string;
+  type: "point";
+  xId: string;
+  yId: string;
+};
+
 export type FilterParameterDefinition =
   | RangeFilterParameterDefinition
-  | SelectFilterParameterDefinition;
+  | SelectFilterParameterDefinition
+  | PointFilterParameterDefinition;
 
 export type FilterDefinition = {
   description: string;
@@ -403,26 +414,36 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
   {
     id: "zoomBlur",
     title: "Zoom Blur",
-    description: "Radial zoom blur from the center.",
+    description: "Radial zoom blur from a controllable center.",
     parameters: [
       {
         id: "strength",
         label: "Strength",
         type: "range",
         min: 0,
-        max: 0.5,
-        step: 0.005,
-        defaultValue: 0.1,
+        max: 100,
+        step: 1,
+        defaultValue: 20,
+        unit: "%",
       },
       {
         id: "innerRadius",
         label: "Inner Radius",
         type: "range",
         min: 0,
-        max: 500,
-        step: 5,
+        max: 100,
+        step: 1,
         defaultValue: 0,
-        unit: "px",
+        unit: "%",
+      },
+      {
+        id: "center",
+        label: "Center",
+        type: "point",
+        xId: "centerX",
+        yId: "centerY",
+        defaultX: 50,
+        defaultY: 50,
       },
     ],
   },
@@ -576,9 +597,12 @@ export function findFilterParameterDefinition(
   filterId: FilterId,
   parameterId: string,
 ): FilterParameterDefinition | undefined {
-  return findFilterDefinition(filterId).parameters.find(
-    (parameter) => parameter.id === parameterId,
-  );
+  return findFilterDefinition(filterId).parameters.find((parameter) => {
+    if (parameter.type === "point") {
+      return parameter.xId === parameterId || parameter.yId === parameterId;
+    }
+    return parameter.id === parameterId;
+  });
 }
 
 export function formatParameterValue(
@@ -671,8 +695,10 @@ export function toPixiFilterValues(filterChain: FilterChainState): PixiFilterVal
     },
     zoomBlur: {
       enabled: filterChain.zoomBlur.enabled,
-      strength: getNumericParameter(filterChain.zoomBlur, "strength"),
+      strength: getNumericParameter(filterChain.zoomBlur, "strength") / 200,
       innerRadius: getNumericParameter(filterChain.zoomBlur, "innerRadius"),
+      centerX: getNumericParameter(filterChain.zoomBlur, "centerX"),
+      centerY: getNumericParameter(filterChain.zoomBlur, "centerY"),
     },
     chromaticAberration: {
       enabled: filterChain.chromaticAberration.enabled,
@@ -691,9 +717,15 @@ export function toPixiFilterValues(filterChain: FilterChainState): PixiFilterVal
 }
 
 function createDefaultParameters(definition: FilterDefinition): Record<string, number | string> {
-  return Object.fromEntries(
-    definition.parameters.map((parameter) => [parameter.id, parameter.defaultValue]),
-  );
+  const entries: [string, number | string][] = [];
+  for (const parameter of definition.parameters) {
+    if (parameter.type === "point") {
+      entries.push([parameter.xId, parameter.defaultX], [parameter.yId, parameter.defaultY]);
+    } else {
+      entries.push([parameter.id, parameter.defaultValue]);
+    }
+  }
+  return Object.fromEntries(entries);
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -706,10 +738,14 @@ function resolveParameterValue(
 ): number | string | undefined {
   if (parameter.type === "range") {
     const numericValue = Number(value);
-
     return Number.isFinite(numericValue)
       ? clamp(numericValue, parameter.min, parameter.max)
       : undefined;
+  }
+
+  if (parameter.type === "point") {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? clamp(numericValue, 0, 100) : undefined;
   }
 
   if (typeof value !== "string") {
