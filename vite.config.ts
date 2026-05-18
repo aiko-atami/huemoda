@@ -1,8 +1,15 @@
 import { defineConfig } from "vite-plus";
-import react from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import path from "node:path";
 
 // https://vite.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: {
+      "styled-system": path.resolve(import.meta.dirname, "styled-system"),
+    },
+  },
   staged: {
     "*": "vp check --fix",
   },
@@ -17,7 +24,7 @@ export default defineConfig({
     env: {
       builtin: true,
     },
-    ignorePatterns: ["dist"],
+    ignorePatterns: ["dist", "styled-system"],
     overrides: [
       {
         files: ["**/*.{ts,tsx}"],
@@ -128,5 +135,5 @@ export default defineConfig({
       typeCheck: true,
     },
   },
-  plugins: [react()],
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
 });

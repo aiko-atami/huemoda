@@ -17,7 +17,7 @@ import {
   filtersReset,
   formatParameterValue,
 } from "../../../entities/filter-chain";
-import { Button, PointPicker, SelectControl, Slider, Toggle } from "../../../shared/ui";
+import { Button, ListControl, PointPicker, Slider, Toggle } from "../../../shared/ui";
 
 export function FilterPanel() {
   const [openFilterId, setOpenFilterId] = useState<FilterId | null>(null);
@@ -253,7 +253,7 @@ function renderParameterControl({
   if (parameter.type === "select") {
     const value = parameters[parameter.id];
     return (
-      <SelectControl
+      <ListControl
         key={parameter.id}
         label={parameter.label}
         options={parameter.options}

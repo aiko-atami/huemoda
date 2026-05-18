@@ -1,3 +1,5 @@
+@layer reset, base, tokens, recipes, utilities;
+
 :root {
   --background: #0f0c1b;
   --surface-low: #141123;

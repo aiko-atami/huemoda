@@ -139,12 +139,17 @@ export class PixiPhotoRenderer {
   setFilterValues(filterValues: PixiFilterValues): void {
     this.filterValues = filterValues;
 
-    void this.readyPromise.then(() => {
-      if (!this.disposed) {
-        this.applyFilters();
-        this.render();
-      }
-    });
+    if (this.initialized) {
+      this.applyFilters();
+      this.render();
+    } else {
+      void this.readyPromise.then(() => {
+        if (!this.disposed) {
+          this.applyFilters();
+          this.render();
+        }
+      });
+    }
   }
 
   async exportImage(options: ExportOptions): Promise<Blob> {

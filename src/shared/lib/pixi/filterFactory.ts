@@ -63,6 +63,8 @@ export function createPixiFilters(
           texture: lutTexture,
         }),
       );
+    } else if (lut.presetId) {
+      console.warn(`[LutFilter] texture not found for preset "${lut.presetId}"`);
     }
   }
 
