@@ -468,7 +468,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
         min: 0,
         max: 50,
         step: 1,
-        defaultValue: 0,
+        defaultValue: 1,
         unit: "int",
       },
       {
