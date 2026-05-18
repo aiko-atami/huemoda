@@ -9,11 +9,16 @@ export default defineConfig({
 
   conditions: {
     extend: {
-      // Base UI Radio data attribute conditions
+      // Base UI data attribute conditions
       dataChecked: "&[data-checked]",
-      groupDataChecked: "[data-checked] &",
+      dataUnchecked: "&[data-unchecked]",
       dataDisabled: "&[data-disabled], &:disabled",
       dataHighlighted: "&[data-highlighted]",
+      dataSelected: "&[data-selected]",
+      dataPlaceholder: "&[data-placeholder]",
+      // Group variants (parent has the data attribute)
+      groupDataChecked: "[data-checked] &",
+      groupDataDisabled: "[data-disabled] &, :disabled &",
     },
   },
 
@@ -47,15 +52,76 @@ export default defineConfig({
           danger: { value: "var(--danger)" },
         },
         radii: {
-          app: {
-            sm: { value: "var(--radius-sm)" },
-            DEFAULT: { value: "var(--radius)" },
-            md: { value: "var(--radius-md)" },
-            lg: { value: "var(--radius-lg)" },
-          },
+          sm: { value: "var(--radius-sm)" },
+          DEFAULT: { value: "var(--radius)" },
+          md: { value: "var(--radius-md)" },
+          lg: { value: "var(--radius-lg)" },
         },
         fonts: {
           app: { value: "var(--font-sans)" },
+        },
+      },
+
+      textStyles: {
+        "display-lg": {
+          value: {
+            fontFamily: "var(--font-sans)",
+            fontSize: "48px",
+            fontWeight: "700",
+            lineHeight: "56px",
+            letterSpacing: "-0.02em",
+          },
+        },
+        "headline-md": {
+          value: {
+            fontFamily: "var(--font-sans)",
+            fontSize: "24px",
+            fontWeight: "600",
+            lineHeight: "32px",
+            letterSpacing: "-0.01em",
+          },
+        },
+        "headline-sm": {
+          value: {
+            fontFamily: "var(--font-sans)",
+            fontSize: "18px",
+            fontWeight: "600",
+            lineHeight: "24px",
+          },
+        },
+        "body-lg": {
+          value: {
+            fontFamily: "var(--font-sans)",
+            fontSize: "16px",
+            fontWeight: "400",
+            lineHeight: "24px",
+          },
+        },
+        "body-md": {
+          value: {
+            fontFamily: "var(--font-sans)",
+            fontSize: "14px",
+            fontWeight: "400",
+            lineHeight: "20px",
+          },
+        },
+        "label-md": {
+          value: {
+            fontFamily: "var(--font-sans)",
+            fontSize: "12px",
+            fontWeight: "500",
+            lineHeight: "16px",
+            letterSpacing: "0.01em",
+          },
+        },
+        "label-sm": {
+          value: {
+            fontFamily: "var(--font-sans)",
+            fontSize: "11px",
+            fontWeight: "600",
+            lineHeight: "14px",
+            letterSpacing: "0.02em",
+          },
         },
       },
     },

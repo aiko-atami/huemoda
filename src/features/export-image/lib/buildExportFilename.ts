@@ -1,4 +1,4 @@
-import type { ExportMimeType } from "../../../shared/lib/pixi/PixiPhotoRenderer";
+import type { ExportMimeType } from "../../../shared/lib/pixi";
 
 const EXPORT_EXTENSIONS: Record<ExportMimeType, string> = {
   "image/jpeg": "jpg",

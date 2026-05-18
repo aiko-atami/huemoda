@@ -6,6 +6,7 @@ import {
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
+import { css } from "styled-system/css";
 
 type PointPickerProps = {
   disabled?: boolean;
@@ -14,6 +15,93 @@ type PointPickerProps = {
   x: number;
   y: number;
 };
+
+const containerClass = css({
+  display: "grid",
+  gap: "8px",
+  color: "text.muted",
+});
+
+const headerClass = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "12px",
+  fontSize: "12px",
+  fontWeight: "700",
+});
+
+const labelClass = css({
+  color: "text.muted",
+});
+
+const valueClass = css({
+  minWidth: "60px",
+  color: "secondary",
+  fontSize: "12px",
+  fontVariantNumeric: "tabular-nums",
+  textAlign: "right",
+});
+
+const padDisabledClass = css({
+  cursor: "not-allowed",
+  opacity: "0.44",
+});
+
+const padClass = css({
+  position: "relative",
+  width: "100%",
+  height: "120px",
+  border: "1px solid",
+  borderColor: "outline",
+  borderRadius: "DEFAULT",
+  background:
+    "linear-gradient(rgba(120, 113, 148, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(120, 113, 148, 0.08) 1px, transparent 1px), var(--surface-high)",
+  backgroundSize: "25% 25%",
+  cursor: "crosshair",
+  outline: "none",
+  touchAction: "none",
+  userSelect: "none",
+  // center guidelines
+  "&::before, &::after": {
+    content: "''",
+    position: "absolute",
+    pointerEvents: "none",
+    background: "rgba(120, 113, 148, 0.22)",
+  },
+  "&::before": {
+    top: "50%",
+    left: "0",
+    width: "100%",
+    height: "1px",
+  },
+  "&::after": {
+    top: "0",
+    left: "50%",
+    width: "1px",
+    height: "100%",
+  },
+  _focusVisible: {
+    outline: "2px solid",
+    outlineColor: "primary",
+    outlineOffset: "2px",
+  },
+});
+
+const crosshairClass = css({
+  position: "absolute",
+  top: "var(--pp-y)",
+  left: "var(--pp-x)",
+  width: "12px",
+  height: "12px",
+  border: "2px solid",
+  borderColor: "surface",
+  borderRadius: "full",
+  background: "primary",
+  boxShadow: "0 0 0 1px var(--primary)",
+  pointerEvents: "none",
+  transform: "translate(-50%, -50%)",
+});
 
 export function PointPicker({ disabled = false, label, onValueChange, x, y }: PointPickerProps) {
   const padRef = useRef<HTMLDivElement>(null);
@@ -71,12 +159,12 @@ export function PointPicker({ disabled = false, label, onValueChange, x, y }: Po
   } as CSSProperties;
 
   return (
-    <div className="point-picker" aria-disabled={disabled || undefined}>
-      <div className="point-picker__header">
-        <span id={labelId} className="point-picker__label">
+    <div className={containerClass} aria-disabled={disabled || undefined}>
+      <div className={headerClass}>
+        <span id={labelId} className={labelClass}>
           {label}
         </span>
-        <output htmlFor={labelId} className="point-picker__value">
+        <output htmlFor={labelId} className={valueClass}>
           {Math.round(x)}% · {Math.round(y)}%
         </output>
       </div>
@@ -86,13 +174,13 @@ export function PointPicker({ disabled = false, label, onValueChange, x, y }: Po
         aria-labelledby={labelId}
         aria-label={`${label}: ${Math.round(x)}% horizontal, ${Math.round(y)}% vertical. Use arrow keys to move, hold Shift for larger steps.`}
         tabIndex={disabled ? -1 : 0}
-        className="point-picker__pad"
+        className={disabled ? `${padClass} ${padDisabledClass}` : padClass}
         style={style}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onKeyDown={handleKeyDown}
       >
-        <div className="point-picker__crosshair" aria-hidden="true" />
+        <div className={crosshairClass} aria-hidden="true" />
       </div>
     </div>
   );

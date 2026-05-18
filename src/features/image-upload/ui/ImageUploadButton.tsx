@@ -8,7 +8,6 @@ import {
   imageSelected,
   releaseLoadedImage,
 } from "../../../entities/image";
-import { filtersReset } from "../../../entities/filter-chain";
 
 type ImageUploadButtonProps = {
   variant?: "compact" | "empty";
@@ -18,10 +17,9 @@ export function ImageUploadButton({ variant = "compact" }: ImageUploadButtonProp
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const { currentImage, selectImage, resetFilters } = useUnit({
+  const { currentImage, selectImage } = useUnit({
     currentImage: $loadedImage,
     selectImage: imageSelected,
-    resetFilters: filtersReset,
   });
 
   const acceptFile = useCallback(
@@ -32,13 +30,12 @@ export function ImageUploadButton({ variant = "compact" }: ImageUploadButtonProp
 
       releaseLoadedImage(currentImage);
       selectImage(createLoadedImage(file));
-      resetFilters();
 
       if (inputRef.current !== null) {
         inputRef.current.value = "";
       }
     },
-    [currentImage, resetFilters, selectImage],
+    [currentImage, selectImage],
   );
 
   const handleChange = useCallback(

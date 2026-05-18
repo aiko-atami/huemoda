@@ -7,14 +7,16 @@ type SelectOption = {
 };
 
 type SelectControlProps = {
+  "aria-label"?: string;
   disabled?: boolean;
-  label: string;
+  label?: string;
   onValueChange: (value: string) => void;
   options: readonly SelectOption[];
   value: string;
 };
 
 export function SelectControl({
+  "aria-label": ariaLabel,
   disabled = false,
   label,
   onValueChange,
@@ -24,6 +26,7 @@ export function SelectControl({
   return (
     <div className="select-control">
       <Select.Root
+        aria-label={ariaLabel}
         disabled={disabled}
         items={options}
         value={value}
@@ -33,7 +36,9 @@ export function SelectControl({
           }
         }}
       >
-        <Select.Label className="select-control__label">{label}</Select.Label>
+        {label !== undefined ? (
+          <Select.Label className="select-control__label">{label}</Select.Label>
+        ) : null}
         <Select.Trigger className="select-control__trigger">
           <Select.Value />
           <Select.Icon className="select-control__icon">

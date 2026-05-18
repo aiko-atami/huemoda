@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { Download, FileUp, RefreshCcw, Upload } from "lucide-react";
-import { Button } from "../../../shared/ui";
+import { Button, buttonRecipe } from "../../../shared/ui";
+import { css, cx } from "styled-system/css";
 import {
   convertCubeToProjectLutPng,
   makeProjectLutFilename,
@@ -236,11 +237,14 @@ export function LutConverterPage() {
                 </dl>
 
                 <a
-                  className="button button--primary button--md lut-result__download"
+                  className={cx(
+                    buttonRecipe({ variant: "primary", size: "md" }),
+                    css({ width: "fit-content", textDecoration: "none" }),
+                  )}
                   href={result.objectUrl}
                   download={result.fileName}
                 >
-                  <span className="button__icon">
+                  <span className={css({ display: "grid", placeItems: "center" })}>
                     <Download size={16} aria-hidden="true" />
                   </span>
                   <span>Download PNG</span>

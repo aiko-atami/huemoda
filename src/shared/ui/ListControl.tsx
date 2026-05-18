@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { Radio } from "@base-ui/react/radio";
 import { ScrollArea } from "@base-ui/react/scroll-area";
@@ -39,7 +39,7 @@ const scrollRootClass = css({
   overflow: "hidden",
   border: "1px solid",
   borderColor: "outline",
-  borderRadius: "app.sm",
+  borderRadius: "sm",
   background: "surface.high",
 });
 
@@ -129,11 +129,12 @@ export function ListControl({
   options,
   value,
 }: ListControlProps) {
+  const labelId = useId();
   const committedRef = useRef(value);
 
   return (
     <div className={containerClass} aria-disabled={disabled || undefined}>
-      <span className={labelClass} id="list-control-label">
+      <span className={labelClass} id={labelId}>
         {label}
       </span>
       <ScrollArea.Root className={scrollRootClass}>
@@ -142,7 +143,7 @@ export function ListControl({
             className={radioGroupClass}
             value={committedRef.current}
             disabled={disabled}
-            aria-labelledby="list-control-label"
+            aria-labelledby={labelId}
             onValueChange={(nextValue) => {
               if (typeof nextValue === "string") {
                 committedRef.current = nextValue;

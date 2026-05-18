@@ -1,4 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { css } from "styled-system/css";
+import { buttonRecipe } from "./buttonRecipe";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md";
@@ -8,6 +10,11 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: ButtonSize;
   variant?: ButtonVariant;
 };
+
+const iconClass = css({
+  display: "grid",
+  placeItems: "center",
+});
 
 export function Button({
   children,
@@ -19,12 +26,10 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      className={["button", `button--${variant}`, `button--${size}`, className]
-        .filter(Boolean)
-        .join(" ")}
+      className={[buttonRecipe({ variant, size }), className].filter(Boolean).join(" ")}
       {...props}
     >
-      {icon === undefined ? null : <span className="button__icon">{icon}</span>}
+      {icon === undefined ? null : <span className={iconClass}>{icon}</span>}
       <span>{children}</span>
     </button>
   );

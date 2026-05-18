@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PROJECT_LUT_ATLAS_SIZE } from "../../../shared/lib/pixi/lutLayout";
+import { PROJECT_LUT_ATLAS_SIZE } from "../../../shared/lib/pixi";
 import { parseCubeLut, rasterizeCubeToProjectLut } from "./cubeLut";
 
 function identityCube(size: number): string {

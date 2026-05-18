@@ -1,10 +1,10 @@
-import { useCallback, useId, useState } from "react";
+import { useCallback, useState } from "react";
 import { Download } from "lucide-react";
 import { useUnit } from "effector-react";
 import { $loadedImage } from "../../../entities/image";
 import { downloadBlob } from "../../../shared/lib/download";
-import type { ExportMimeType } from "../../../shared/lib/pixi/PixiPhotoRenderer";
-import { Button } from "../../../shared/ui";
+import type { ExportMimeType } from "../../../shared/lib/pixi";
+import { Button, SelectControl } from "../../../shared/ui";
 import { buildExportFilename } from "../lib/buildExportFilename";
 
 type ExportButtonProps = {
@@ -12,8 +12,13 @@ type ExportButtonProps = {
   exportImage: (mimeType: ExportMimeType) => Promise<Blob>;
 };
 
+const FORMAT_OPTIONS: readonly { label: string; value: ExportMimeType }[] = [
+  { label: "WebP", value: "image/webp" },
+  { label: "PNG", value: "image/png" },
+  { label: "JPEG", value: "image/jpeg" },
+];
+
 export function ExportButton({ disabled, exportImage }: ExportButtonProps) {
-  const formatSelectId = useId();
   const image = useUnit($loadedImage);
   const [format, setFormat] = useState<ExportMimeType>("image/webp");
   const [isExporting, setIsExporting] = useState(false);
@@ -39,19 +44,13 @@ export function ExportButton({ disabled, exportImage }: ExportButtonProps) {
 
   return (
     <div className="export-control">
-      <select
-        id={formatSelectId}
-        className="format-select"
+      <SelectControl
         aria-label="Export format"
-        name="export-format"
+        options={FORMAT_OPTIONS}
         value={format}
-        onChange={(event) => setFormat(event.target.value as ExportMimeType)}
+        onValueChange={(v) => setFormat(v as ExportMimeType)}
         disabled={disabled || isExporting}
-      >
-        <option value="image/webp">WebP</option>
-        <option value="image/png">PNG</option>
-        <option value="image/jpeg">JPEG</option>
-      </select>
+      />
       <Button
         type="button"
         variant="primary"

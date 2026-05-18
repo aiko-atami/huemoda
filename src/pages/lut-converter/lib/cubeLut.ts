@@ -4,8 +4,8 @@ export {
   rasterizeCubeToProjectLut,
   type CubeLut,
   type ProjectLutPixels,
-} from "../../../shared/lib/pixi/cubeLut.ts";
-import { rasterizeCubeToProjectLut, type CubeLut } from "../../../shared/lib/pixi/cubeLut.ts";
+} from "../../../shared/lib/pixi";
+import { rasterizeCubeToProjectLut, type CubeLut } from "../../../shared/lib/pixi";
 
 export async function convertCubeToProjectLutPng(cube: CubeLut): Promise<Blob> {
   const pixels = rasterizeCubeToProjectLut(cube);

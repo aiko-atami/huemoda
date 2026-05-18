@@ -13,7 +13,7 @@ import { ExportButton } from "../../../features/export-image";
 import { ImageUploadButton } from "../../../features/image-upload";
 import { FilterPanel } from "../../../features/filter-controls";
 import { Button } from "../../../shared/ui";
-import type { ExportMimeType, PixiPhotoRenderer } from "../../../shared/lib/pixi/PixiPhotoRenderer";
+import type { ExportMimeType, PixiPhotoRenderer } from "../../../shared/lib/pixi";
 
 const PixiCanvas = lazy(async () => {
   const module = await import("./PixiCanvas");

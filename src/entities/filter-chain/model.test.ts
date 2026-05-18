@@ -19,7 +19,7 @@ describe("filter chain model", () => {
     expect(state.lut.parameters.intensity).toBe(0.35);
     expect(state.grain.parameters.intensity).toBe(0.07);
     expect(state.chromaticAberration.parameters.intensity).toBe(0.25);
-    expect(state.chromaticAberration.parameters.offset).toBe(0);
+    expect(state.chromaticAberration.parameters.offset).toBe(1);
   });
 
   it("adds a filter and auto-enables it", () => {

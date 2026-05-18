@@ -1,7 +1,7 @@
 import { createEvent, createStore } from "effector";
-import type { PixiFilterValues } from "../../shared/lib/pixi/filterTypes";
-import { DEFAULT_LUT_PRESET_ID, LUT_PRESETS } from "../../shared/lib/pixi/lutPresets";
-import type { LutPreset, LutPresetId } from "../../shared/lib/pixi/lutPresets";
+import type { PixiFilterValues } from "../../shared/lib/pixi";
+import { DEFAULT_LUT_PRESET_ID, LUT_PRESETS } from "../../shared/lib/pixi";
+import type { LutPreset, LutPresetId } from "../../shared/lib/pixi";
 
 const FILTER_IDS = [
   "tone",

@@ -109,7 +109,7 @@ export function FilterPanel() {
                     <Toggle
                       label={`${definition.title} enabled`}
                       pressed={filterState.enabled}
-                      onPressedChange={() => toggleFilter(definition.id)}
+                      onPressedChange={(_pressed) => toggleFilter(definition.id)}
                     />
                     <button
                       type="button"

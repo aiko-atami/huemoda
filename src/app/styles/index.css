@@ -478,97 +478,25 @@ button {
   outline-offset: 2px;
 }
 
-.button,
-.upload-button,
-.format-select {
+.upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 34px;
   border: 1px solid transparent;
   border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 700;
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
     color 160ms ease;
 }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  cursor: pointer;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.button--sm {
-  min-height: 34px;
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-.button--md {
-  min-height: 38px;
-  padding: 8px 12px;
-  font-size: 13px;
-}
-
-.button--primary {
-  background: var(--primary);
-  color: var(--on-primary);
-}
-
-.button--primary:hover:not(:disabled) {
-  background: var(--primary-strong);
-}
-
-.button--secondary {
-  background: var(--surface-high);
-  border-color: var(--outline);
-  color: var(--text);
-}
-
-.button--secondary:hover:not(:disabled),
-.button--ghost:hover:not(:disabled) {
-  background: var(--surface-highest);
-  border-color: var(--outline-strong);
-}
-
-.button--ghost {
-  background: transparent;
-  border-color: var(--outline);
-  color: var(--text-muted);
-}
-
-.button--danger {
-  background: transparent;
-  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
-  color: var(--danger);
-}
-
-.button--danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-  border-color: var(--danger);
-}
-
-.button:disabled,
-.format-select:disabled,
 .upload-button:has(input:disabled) {
   cursor: not-allowed;
   opacity: 0.48;
-}
-
-.button__icon {
-  display: grid;
-  place-items: center;
-}
-
-.upload-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  font-weight: 700;
 }
 
 .upload-button input {
@@ -808,16 +736,6 @@ button {
   }
 }
 
-.format-select {
-  width: 74px;
-  padding: 6px 8px;
-  background: var(--surface-high);
-  color: var(--text-muted);
-  border-color: var(--outline);
-  font-size: 12px;
-  font-weight: 700;
-}
-
 .export-control__error {
   position: absolute;
   top: calc(100% + 6px);
@@ -831,47 +749,6 @@ button {
   white-space: nowrap;
 }
 
-.toggle {
-  position: relative;
-  width: 36px;
-  height: 22px;
-  flex: 0 0 auto;
-  border: 1px solid var(--outline);
-  border-radius: 999px;
-  background: var(--surface-highest);
-  cursor: pointer;
-}
-
-.toggle span {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--text-muted);
-  transition:
-    background-color 160ms ease,
-    transform 160ms ease;
-}
-
-.toggle.is-pressed {
-  background: var(--primary);
-  border-color: var(--primary);
-}
-
-.toggle.is-pressed span {
-  transform: translateX(14px);
-  background: var(--on-primary);
-}
-
-.slider-control {
-  display: grid;
-  gap: 8px;
-  color: var(--text-muted);
-}
-
-.slider-control__header,
 .select-control__label {
   display: flex;
   align-items: center;
@@ -881,73 +758,8 @@ button {
   font-weight: 700;
 }
 
-.slider-control output {
-  min-width: 46px;
-  color: var(--secondary);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.slider-control input {
-  width: 100%;
-  height: 18px;
-  margin: 0;
-  appearance: none;
-  background: transparent;
-  cursor: pointer;
-}
-
-.slider-control input:disabled {
-  cursor: not-allowed;
-  opacity: 0.44;
-}
-
-.slider-control input::-webkit-slider-runnable-track {
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    var(--primary) 0 var(--slider-fill),
-    var(--surface-highest) var(--slider-fill) 100%
-  );
-}
-
-.slider-control input::-webkit-slider-thumb {
-  width: 14px;
-  height: 14px;
-  margin-top: -5.5px;
-  appearance: none;
-  border: 2px solid var(--surface);
-  border-radius: 50%;
-  background: var(--primary);
-}
-
-.slider-control input::-moz-range-track {
-  height: 3px;
-  border-radius: 999px;
-  background: var(--surface-highest);
-}
-
-.slider-control input::-moz-range-progress {
-  height: 3px;
-  border-radius: 999px;
-  background: var(--primary);
-}
-
-.slider-control input::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--surface);
-  border-radius: 50%;
-  background: var(--primary);
-}
-
-.button:focus-visible,
 .upload-button:focus-within,
-.format-select:focus-visible,
-.filter-section__toggle:focus-visible,
-.toggle:focus-visible,
-.slider-control input:focus-visible {
+.filter-section__toggle:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
@@ -1048,95 +860,6 @@ button {
   color: var(--secondary);
 }
 
-.point-picker {
-  display: grid;
-  gap: 8px;
-  color: var(--text-muted);
-}
-
-.point-picker__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.point-picker__label {
-  color: var(--text-muted);
-}
-
-.point-picker__value {
-  min-width: 60px;
-  color: var(--secondary);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-.point-picker__pad {
-  position: relative;
-  width: 100%;
-  height: 120px;
-  border: 1px solid var(--outline);
-  border-radius: var(--radius);
-  background:
-    linear-gradient(rgba(120, 113, 148, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(120, 113, 148, 0.08) 1px, transparent 1px), var(--surface-high);
-  background-size: 25% 25%;
-  cursor: crosshair;
-  outline: none;
-  touch-action: none;
-  user-select: none;
-}
-
-.point-picker__pad::before,
-.point-picker__pad::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  background: rgba(120, 113, 148, 0.22);
-}
-
-.point-picker__pad::before {
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 1px;
-}
-
-.point-picker__pad::after {
-  top: 0;
-  left: 50%;
-  width: 1px;
-  height: 100%;
-}
-
-.point-picker__pad:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-[aria-disabled="true"] .point-picker__pad {
-  cursor: not-allowed;
-  opacity: 0.44;
-}
-
-.point-picker__crosshair {
-  position: absolute;
-  top: var(--pp-y);
-  left: var(--pp-x);
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--surface);
-  border-radius: 50%;
-  background: var(--primary);
-  box-shadow: 0 0 0 1px var(--primary);
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-}
-
 @media (max-width: 1180px) {
   .editor-shell {
     grid-template-columns: minmax(0, 1fr) 292px;
@@ -1209,17 +932,13 @@ button {
     width: 100%;
   }
 
-  .button,
   .upload-button--compact {
     flex: 1 1 auto;
   }
 
-  .export-control .button {
-    flex: 1 1 auto;
-  }
-
-  .format-select {
+  .export-control .select-control__trigger {
     flex: 0 0 78px;
+    min-width: 0;
   }
 
   .canvas-stage {
