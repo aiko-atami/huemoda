@@ -4,7 +4,7 @@ import { createPixiFilters } from "./filterFactory";
 import { createEmptyPixiFilterValues, type PixiFilterValues } from "./filterTypes";
 import { LUT_PRESETS } from "./lutPresets";
 
-export type ExportMimeType = "image/png" | "image/jpeg";
+export type ExportMimeType = "image/png" | "image/jpeg" | "image/webp";
 
 type ExportOptions = {
   mimeType: ExportMimeType;
@@ -454,7 +454,9 @@ async function canvasToBlob(
   quality?: number,
 ): Promise<Blob> {
   if (canvas.convertToBlob !== undefined) {
-    return canvas.convertToBlob({ type: mimeType, quality });
+    const blob = await canvas.convertToBlob({ type: mimeType, quality });
+
+    return validateExportBlob(blob, mimeType);
   }
 
   if (canvas.toBlob !== undefined) {
@@ -466,7 +468,11 @@ async function canvasToBlob(
             return;
           }
 
-          resolve(blob);
+          try {
+            resolve(validateExportBlob(blob, mimeType));
+          } catch (error) {
+            reject(error);
+          }
         },
         mimeType,
         quality,
@@ -477,8 +483,16 @@ async function canvasToBlob(
   if (canvas.toDataURL !== undefined) {
     const response = await fetch(canvas.toDataURL(mimeType, quality));
 
-    return response.blob();
+    return validateExportBlob(await response.blob(), mimeType);
   }
 
   throw new Error("Canvas export is not supported");
+}
+
+function validateExportBlob(blob: Blob, mimeType: ExportMimeType): Blob {
+  if (mimeType === "image/webp" && blob.type !== "image/webp") {
+    throw new Error("Canvas WebP export is not supported");
+  }
+
+  return blob;
 }

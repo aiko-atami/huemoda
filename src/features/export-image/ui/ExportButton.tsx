@@ -5,6 +5,7 @@ import { $loadedImage } from "../../../entities/image";
 import { downloadBlob } from "../../../shared/lib/download";
 import type { ExportMimeType } from "../../../shared/lib/pixi/PixiPhotoRenderer";
 import { Button } from "../../../shared/ui";
+import { buildExportFilename } from "../lib/buildExportFilename";
 
 type ExportButtonProps = {
   disabled: boolean;
@@ -14,7 +15,7 @@ type ExportButtonProps = {
 export function ExportButton({ disabled, exportImage }: ExportButtonProps) {
   const formatSelectId = useId();
   const image = useUnit($loadedImage);
-  const [format, setFormat] = useState<ExportMimeType>("image/png");
+  const [format, setFormat] = useState<ExportMimeType>("image/webp");
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +48,7 @@ export function ExportButton({ disabled, exportImage }: ExportButtonProps) {
         onChange={(event) => setFormat(event.target.value as ExportMimeType)}
         disabled={disabled || isExporting}
       >
+        <option value="image/webp">WebP</option>
         <option value="image/png">PNG</option>
         <option value="image/jpeg">JPEG</option>
       </select>
@@ -67,16 +69,4 @@ export function ExportButton({ disabled, exportImage }: ExportButtonProps) {
       )}
     </div>
   );
-}
-
-function buildExportFilename(name: string, mimeType: ExportMimeType): string {
-  const extension = mimeType === "image/jpeg" ? "jpg" : "png";
-  const basename =
-    name
-      .replace(/\.[^.]+$/, "")
-      .replace(/[^a-z0-9_-]+/gi, "-")
-      .replace(/^-+|-+$/g, "")
-      .toLowerCase() || "image";
-
-  return `huemoda-${basename}.${extension}`;
 }
