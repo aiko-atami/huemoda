@@ -56,6 +56,7 @@ export default defineConfig({
           DEFAULT: { value: "var(--radius)" },
           md: { value: "var(--radius-md)" },
           lg: { value: "var(--radius-lg)" },
+          full: { value: "9999px" },
         },
         fonts: {
           app: { value: "var(--font-sans)" },

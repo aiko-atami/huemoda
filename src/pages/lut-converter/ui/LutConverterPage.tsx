@@ -10,6 +10,33 @@ import {
   type CubeLut,
 } from "../lib/cubeLut";
 
+const metaContainerClass = css({
+  display: "flex",
+  minWidth: "0",
+  flexWrap: "wrap",
+  gap: "6px",
+  justifyContent: "center",
+  color: "text.dim",
+  "@media (max-width: 820px)": {
+    justifyContent: "flex-start",
+  },
+});
+
+const metaChipClass = css({
+  minWidth: "0",
+  maxWidth: "220px",
+  overflow: "hidden",
+  padding: "3px 8px",
+  border: "1px solid",
+  borderColor: "outline",
+  borderRadius: "full",
+  background: "surface",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const metaNameChipClass = cx(metaChipClass, css({ color: "text.muted" }));
+
 type ConversionResult = {
   cube: CubeLut;
   file: File;
@@ -148,14 +175,14 @@ export function LutConverterPage() {
             <h1>LUT Converter</h1>
           </div>
 
-          <div className="image-meta" aria-live="polite">
+          <div className={metaContainerClass} aria-live="polite">
             {result === null ? (
-              <span>No LUT loaded</span>
+              <span className={metaChipClass}>No LUT loaded</span>
             ) : (
               <>
-                <span className="image-meta__name">{result.file.name}</span>
-                <span>{formatFileSize(result.file.size)}</span>
-                <span>{result.cube.size}^3</span>
+                <span className={metaNameChipClass}>{result.file.name}</span>
+                <span className={metaChipClass}>{formatFileSize(result.file.size)}</span>
+                <span className={metaChipClass}>{result.cube.size}^3</span>
               </>
             )}
           </div>

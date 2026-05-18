@@ -8,6 +8,7 @@ import {
   imageSelected,
   releaseLoadedImage,
 } from "../../../entities/image";
+import { uploadButtonRecipe } from "./uploadButtonRecipe";
 
 type ImageUploadButtonProps = {
   variant?: "compact" | "empty";
@@ -66,9 +67,8 @@ export function ImageUploadButton({ variant = "compact" }: ImageUploadButtonProp
   return (
     <label
       htmlFor={inputId}
-      className={["upload-button", `upload-button--${variant}`, isDragging ? "is-dragging" : ""]
-        .filter(Boolean)
-        .join(" ")}
+      className={uploadButtonRecipe({ variant })}
+      data-dragging={isDragging || undefined}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}

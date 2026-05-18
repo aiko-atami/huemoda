@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useUnit } from "effector-react";
+import { css } from "styled-system/css";
 import {
   $loadedImage,
   formatFileSize,
@@ -14,6 +15,31 @@ import { ImageUploadButton } from "../../../features/image-upload";
 import { FilterPanel } from "../../../features/filter-controls";
 import { Button } from "../../../shared/ui";
 import type { ExportMimeType, PixiPhotoRenderer } from "../../../shared/lib/pixi";
+
+const metaContainerClass = css({
+  display: "flex",
+  minWidth: "0",
+  flexWrap: "wrap",
+  gap: "6px",
+  justifyContent: "center",
+  color: "text.dim",
+  "@media (max-width: 900px)": {
+    justifyContent: "flex-start",
+  },
+});
+
+const metaChipClass = css({
+  minWidth: "0",
+  maxWidth: "220px",
+  overflow: "hidden",
+  padding: "3px 8px",
+  border: "1px solid",
+  borderColor: "outline",
+  borderRadius: "full",
+  background: "surface",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
 
 const PixiCanvas = lazy(async () => {
   const module = await import("./PixiCanvas");
@@ -77,13 +103,15 @@ export function EditorWorkspace() {
             <h1>Photo Lab</h1>
           </div>
 
-          <div className="image-meta" aria-live="polite">
+          <div className={metaContainerClass} aria-live="polite">
             {image === null ? (
-              <span>No image loaded</span>
+              <span className={metaChipClass}>No image loaded</span>
             ) : (
               <>
-                <span>{formatFileSize(image.size)}</span>
-                <span>{image.type.replace("image/", "").toUpperCase()}</span>
+                <span className={metaChipClass}>{formatFileSize(image.size)}</span>
+                <span className={metaChipClass}>
+                  {image.type.replace("image/", "").toUpperCase()}
+                </span>
               </>
             )}
           </div>
