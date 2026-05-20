@@ -3,6 +3,7 @@ import { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
 import { GrainFilter } from "./GrainFilter";
 import { LensFlareFilter } from "./LensFlareFilter";
 import { LutFilter } from "./LutFilter";
+import { SpinBlurFilter } from "./SpinBlurFilter";
 import {
   AdvancedBloomFilter,
   AdjustmentFilter,
@@ -41,6 +42,7 @@ export function createPixiFilters(
     lut,
     motionBlur,
     noise,
+    spinBlur,
     tone,
     zoomBlur,
   } = filterChain;
@@ -206,6 +208,20 @@ export function createPixiFilters(
         rotation: lensFlare.rotation,
         hue: lensFlare.hue,
         fringe: lensFlare.fringe,
+      }),
+    );
+  }
+
+  if (spinBlur.enabled) {
+    filters.push(
+      new SpinBlurFilter({
+        intensity: spinBlur.intensity,
+        blurAmount: spinBlur.blurAmount,
+        // positionX/Y in PixiFilterValues are normalised [0,1]; multiply by
+        // actual image dimensions to get pixel coordinates (matches ZoomBlur).
+        positionX: context ? context.width * spinBlur.positionX : 0,
+        positionY: context ? context.height * spinBlur.positionY : 0,
+        size: spinBlur.size,
       }),
     );
   }

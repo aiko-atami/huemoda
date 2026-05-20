@@ -130,4 +130,61 @@ describe("filter chain model", () => {
     expect(pixiValues.lensFlare.positionY).toBeCloseTo(0.25);
     expect(pixiValues.lensFlare.enabled).toBe(true);
   });
+
+  it("maps spin blur position from 0-100 control range to 0-1 UV range", () => {
+    let state = addFilterToChain(createInitialFilterState(), "spinBlur");
+    state = updateFilterParameterState(state, {
+      filterId: "spinBlur",
+      parameterId: "positionX",
+      value: 75,
+    });
+    state = updateFilterParameterState(state, {
+      filterId: "spinBlur",
+      parameterId: "positionY",
+      value: 40,
+    });
+
+    const pixiValues = toPixiFilterValues(state);
+
+    expect(pixiValues.spinBlur.positionX).toBeCloseTo(0.75);
+    expect(pixiValues.spinBlur.positionY).toBeCloseTo(0.4);
+    expect(pixiValues.spinBlur.enabled).toBe(true);
+  });
+
+  it("maps spin blur size from 0-100 control range to 0-1 UV range", () => {
+    let state = addFilterToChain(createInitialFilterState(), "spinBlur");
+    state = updateFilterParameterState(state, {
+      filterId: "spinBlur",
+      parameterId: "size",
+      value: 50,
+    });
+
+    const pixiValues = toPixiFilterValues(state);
+
+    expect(pixiValues.spinBlur.size).toBeCloseTo(0.5);
+  });
+
+  it("creates spin blur with default parameters", () => {
+    const state = createInitialFilterState();
+
+    expect(state.spinBlur.added).toBe(false);
+    expect(state.spinBlur.enabled).toBe(false);
+    expect(state.spinBlur.parameters.intensity).toBe(0.8);
+    expect(state.spinBlur.parameters.blurAmount).toBe(1);
+    expect(state.spinBlur.parameters.positionX).toBe(50);
+    expect(state.spinBlur.parameters.positionY).toBe(50);
+    expect(state.spinBlur.parameters.size).toBe(50);
+  });
+
+  it("converts spin blur amount from % of rotation to degrees for the shader", () => {
+    let state = addFilterToChain(createInitialFilterState(), "spinBlur");
+    state = updateFilterParameterState(state, {
+      filterId: "spinBlur",
+      parameterId: "blurAmount",
+      value: 1,
+    });
+
+    // 1 % of 360° = 3.6°
+    expect(toPixiFilterValues(state).spinBlur.blurAmount).toBeCloseTo(3.6);
+  });
 });

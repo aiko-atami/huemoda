@@ -26,3 +26,6 @@ export type { LensFlareOptions } from "./LensFlareFilter";
 
 export { LutFilter } from "./LutFilter";
 export type { LutFilterOptions } from "./LutFilter";
+
+export { SpinBlurFilter } from "./SpinBlurFilter";
+export type { SpinBlurOptions } from "./SpinBlurFilter";

@@ -92,6 +92,14 @@ export type PixiFilterValues = {
     hue: number;
     fringe: number;
   };
+  spinBlur: {
+    enabled: boolean;
+    intensity: number;
+    blurAmount: number;
+    positionX: number;
+    positionY: number;
+    size: number;
+  };
 };
 
 export function createEmptyPixiFilterValues(): PixiFilterValues {
@@ -188,6 +196,14 @@ export function createEmptyPixiFilterValues(): PixiFilterValues {
       rotation: 0,
       hue: 0,
       fringe: 0,
+    },
+    spinBlur: {
+      enabled: false,
+      intensity: 0.8,
+      blurAmount: 3.6,
+      positionX: 0.5,
+      positionY: 0.5,
+      size: 0.5,
     },
   };
 }

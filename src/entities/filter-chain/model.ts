@@ -18,6 +18,7 @@ const FILTER_IDS = [
   "zoomBlur",
   "chromaticAberration",
   "lensFlare",
+  "spinBlur",
 ] as const;
 
 export type FilterId = (typeof FILTER_IDS)[number];
@@ -584,6 +585,51 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       },
     ],
   },
+  {
+    id: "spinBlur",
+    title: "Spin Blur",
+    description: "Rotational motion blur around a controllable center.",
+    parameters: [
+      {
+        id: "intensity",
+        label: "Intensity",
+        type: "range",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        defaultValue: 0.8,
+      },
+      {
+        id: "blurAmount",
+        label: "Blur Amount",
+        type: "range",
+        min: 0,
+        max: 5,
+        step: 0.1,
+        defaultValue: 1,
+        unit: "%",
+      },
+      {
+        id: "size",
+        label: "Size",
+        type: "range",
+        min: 0,
+        max: 100,
+        step: 1,
+        defaultValue: 50,
+        unit: "%",
+      },
+      {
+        id: "position",
+        label: "Position",
+        type: "point",
+        xId: "positionX",
+        yId: "positionY",
+        defaultX: 50,
+        defaultY: 50,
+      },
+    ],
+  },
 ];
 
 export const filterAdded = createEvent<FilterId>();
@@ -827,6 +873,15 @@ export function toPixiFilterValues(filterChain: FilterChainState): PixiFilterVal
       rotation: getNumericParameter(filterChain.lensFlare, "rotation"),
       hue: getNumericParameter(filterChain.lensFlare, "hue"),
       fringe: getNumericParameter(filterChain.lensFlare, "fringe"),
+    },
+    spinBlur: {
+      enabled: filterChain.spinBlur.enabled,
+      intensity: getNumericParameter(filterChain.spinBlur, "intensity"),
+      // UI blurAmount is in % of full rotation (0–5 %).  Shader expects degrees.
+      blurAmount: getNumericParameter(filterChain.spinBlur, "blurAmount") * 3.6,
+      positionX: getNumericParameter(filterChain.spinBlur, "positionX") / 100,
+      positionY: getNumericParameter(filterChain.spinBlur, "positionY") / 100,
+      size: getNumericParameter(filterChain.spinBlur, "size") / 100,
     },
   };
 }
