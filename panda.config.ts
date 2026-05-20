@@ -23,6 +23,7 @@ export default defineConfig({
   },
 
   theme: {
+    tokens: {},
     extend: {
       semanticTokens: {
         colors: {
@@ -52,8 +53,8 @@ export default defineConfig({
           danger: { value: "var(--danger)" },
         },
         radii: {
-          sm: { value: "var(--radius-sm)" },
           DEFAULT: { value: "var(--radius)" },
+          sm: { value: "var(--radius-sm)" },
           md: { value: "var(--radius-md)" },
           lg: { value: "var(--radius-lg)" },
           full: { value: "9999px" },

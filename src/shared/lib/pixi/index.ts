@@ -21,5 +21,8 @@ export type { ChromaticAberrationOptions } from "./ChromaticAberrationFilter";
 export { GrainFilter } from "./GrainFilter";
 export type { GrainOptions } from "./GrainFilter";
 
+export { LensFlareFilter } from "./LensFlareFilter";
+export type { LensFlareOptions } from "./LensFlareFilter";
+
 export { LutFilter } from "./LutFilter";
 export type { LutFilterOptions } from "./LutFilter";

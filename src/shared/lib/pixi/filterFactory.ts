@@ -1,6 +1,7 @@
 import type { Filter, Texture } from "pixi.js";
 import { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
 import { GrainFilter } from "./GrainFilter";
+import { LensFlareFilter } from "./LensFlareFilter";
 import { LutFilter } from "./LutFilter";
 import {
   AdvancedBloomFilter,
@@ -35,6 +36,7 @@ export function createPixiFilters(
     glitch,
     glow,
     grain,
+    lensFlare,
     lightLeak,
     lut,
     motionBlur,
@@ -187,6 +189,23 @@ export function createPixiFilters(
         twist: chromaticAberration.twist,
         centerX: chromaticAberration.centerX,
         centerY: chromaticAberration.centerY,
+      }),
+    );
+  }
+
+  if (lensFlare.enabled) {
+    filters.push(
+      new LensFlareFilter({
+        intensity: lensFlare.intensity,
+        power: lensFlare.power,
+        positionX: lensFlare.positionX,
+        positionY: lensFlare.positionY,
+        artifacts: lensFlare.artifacts,
+        rings: lensFlare.rings,
+        streaks: lensFlare.streaks,
+        rotation: lensFlare.rotation,
+        hue: lensFlare.hue,
+        fringe: lensFlare.fringe,
       }),
     );
   }

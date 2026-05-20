@@ -110,4 +110,24 @@ describe("filter chain model", () => {
 
     expect(toPixiFilterValues(state).chromaticAberration.offsetX).toBe(0.001);
   });
+
+  it("maps lens flare position from 0-100 control range to 0-1 UV range", () => {
+    let state = addFilterToChain(createInitialFilterState(), "lensFlare");
+    state = updateFilterParameterState(state, {
+      filterId: "lensFlare",
+      parameterId: "positionX",
+      value: 30,
+    });
+    state = updateFilterParameterState(state, {
+      filterId: "lensFlare",
+      parameterId: "positionY",
+      value: 25,
+    });
+
+    const pixiValues = toPixiFilterValues(state);
+
+    expect(pixiValues.lensFlare.positionX).toBeCloseTo(0.3);
+    expect(pixiValues.lensFlare.positionY).toBeCloseTo(0.25);
+    expect(pixiValues.lensFlare.enabled).toBe(true);
+  });
 });
