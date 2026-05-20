@@ -1,6 +1,6 @@
 import { sample } from "effector";
-import { imageSelected } from "../entities/image";
+import { imageCleared } from "../entities/image";
 import { filtersReset } from "../entities/filter-chain";
 
-// When a new image is loaded, reset the filter chain automatically.
-sample({ clock: imageSelected, target: filtersReset });
+// Clearing the image also resets the filter chain.
+sample({ clock: imageCleared, target: filtersReset });

@@ -2,12 +2,7 @@ import { useCallback, useId, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { Upload } from "lucide-react";
 import { useUnit } from "effector-react";
-import {
-  $loadedImage,
-  createLoadedImage,
-  imageSelected,
-  releaseLoadedImage,
-} from "../../../entities/image";
+import { $loadedImage, createLoadedImage, imageSelected } from "../../../entities/image";
 import { uploadButtonRecipe } from "./uploadButtonRecipe";
 
 type ImageUploadButtonProps = {
@@ -29,14 +24,13 @@ export function ImageUploadButton({ variant = "compact" }: ImageUploadButtonProp
         return;
       }
 
-      releaseLoadedImage(currentImage);
       selectImage(createLoadedImage(file));
 
       if (inputRef.current !== null) {
         inputRef.current.value = "";
       }
     },
-    [currentImage, selectImage],
+    [selectImage],
   );
 
   const handleChange = useCallback(

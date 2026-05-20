@@ -5,18 +5,13 @@ export {
   DEFAULT_LUT_PRESET_ID,
   FILTER_DEFINITIONS,
   LUT_PRESETS,
-  addFilterToChain,
-  createInitialFilterState,
   filterAdded,
   filterParameterChanged,
   filterRemoved,
   filterToggled,
   filtersReset,
   formatParameterValue,
-  removeFilterFromChain,
-  toggleFilterState,
   toPixiFilterValues,
-  updateFilterParameterState,
 } from "./model";
 export type {
   FilterChainState,

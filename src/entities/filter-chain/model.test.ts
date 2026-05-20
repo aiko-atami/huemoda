@@ -6,7 +6,7 @@ import {
   toPixiFilterValues,
   toggleFilterState,
   updateFilterParameterState,
-} from ".";
+} from "./model";
 
 describe("filter chain model", () => {
   it("creates unadded, disabled filters with default parameters", () => {

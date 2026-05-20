@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef } from "react";
 import { Trash2 } from "lucide-react";
 import { useUnit } from "effector-react";
 import { css } from "styled-system/css";
@@ -9,12 +9,21 @@ import {
   type LoadedImage,
   releaseLoadedImage,
 } from "../../../entities/image";
-import { $filterChain, filtersReset, toPixiFilterValues } from "../../../entities/filter-chain";
+import { $filterChain, toPixiFilterValues } from "../../../entities/filter-chain";
 import { ExportButton } from "../../../features/export-image";
 import { ImageUploadButton } from "../../../features/image-upload";
 import { FilterPanel } from "../../../features/filter-controls";
 import { Button } from "../../../shared/ui";
-import type { ExportMimeType, PixiPhotoRenderer } from "../../../shared/lib/pixi";
+import type { PixiPhotoRenderer } from "../../../shared/lib/pixi";
+import {
+  $exportError,
+  $exportFormat,
+  $isExporting,
+  $isRendererReady,
+  exportFormatChanged,
+  exportTriggered,
+  rendererChanged,
+} from "../model";
 
 const metaContainerClass = css({
   display: "flex",
@@ -48,14 +57,29 @@ const PixiCanvas = lazy(async () => {
 });
 
 export function EditorWorkspace() {
-  const rendererRef = useRef<PixiPhotoRenderer | null>(null);
   const latestImageRef = useRef<LoadedImage | null>(null);
-  const [isRendererReady, setIsRendererReady] = useState(false);
-  const { filterChain, image, clearImage, resetFilters } = useUnit({
+  const {
+    filterChain,
+    image,
+    clearImage,
+    exportError,
+    exportFormat,
+    isExporting,
+    isRendererReady,
+    onExport,
+    onFormatChange,
+    onRendererChanged,
+  } = useUnit({
     filterChain: $filterChain,
     image: $loadedImage,
     clearImage: imageCleared,
-    resetFilters: filtersReset,
+    exportError: $exportError,
+    exportFormat: $exportFormat,
+    isExporting: $isExporting,
+    isRendererReady: $isRendererReady,
+    onExport: exportTriggered,
+    onFormatChange: exportFormatChanged,
+    onRendererChanged: rendererChanged,
   });
   const pixiFilterValues = toPixiFilterValues(filterChain);
 
@@ -63,6 +87,8 @@ export function EditorWorkspace() {
     latestImageRef.current = image;
   }, [image]);
 
+  // Release the object URL when the component unmounts (React lifecycle boundary —
+  // cannot be modelled as an Effector effect since no domain event fires on unmount).
   useEffect(
     () => () => {
       releaseLoadedImage(latestImageRef.current);
@@ -70,29 +96,16 @@ export function EditorWorkspace() {
     [],
   );
 
-  const handleRendererReady = useCallback((renderer: PixiPhotoRenderer | null) => {
-    rendererRef.current = renderer;
-    setIsRendererReady(renderer !== null);
-  }, []);
+  const handleRendererReady = useCallback(
+    (renderer: PixiPhotoRenderer | null) => {
+      onRendererChanged(renderer);
+    },
+    [onRendererChanged],
+  );
 
   const handleClearImage = useCallback(() => {
-    releaseLoadedImage(image);
     clearImage();
-    resetFilters();
-  }, [clearImage, image, resetFilters]);
-
-  const exportImage = useCallback(async (mimeType: ExportMimeType) => {
-    const renderer = rendererRef.current;
-
-    if (renderer === null) {
-      throw new Error("Renderer is not ready");
-    }
-
-    return renderer.exportImage({
-      mimeType,
-      quality: mimeType === "image/jpeg" ? 0.92 : undefined,
-    });
-  }, []);
+  }, [clearImage]);
 
   return (
     <section className="editor-shell" aria-label="HueModa photo editor">
@@ -128,7 +141,14 @@ export function EditorWorkspace() {
             >
               Clear
             </Button>
-            <ExportButton disabled={image === null || !isRendererReady} exportImage={exportImage} />
+            <ExportButton
+              disabled={image === null || !isRendererReady}
+              error={exportError}
+              format={exportFormat}
+              isExporting={isExporting}
+              onExport={onExport}
+              onFormatChange={onFormatChange}
+            />
           </div>
         </header>
 

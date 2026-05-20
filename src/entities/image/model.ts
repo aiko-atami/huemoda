@@ -1,4 +1,4 @@
-import { createEvent, createStore } from "effector";
+import { createEffect, createEvent, createStore, sample } from "effector";
 
 export type LoadedImage = {
   id: string;
@@ -16,6 +16,26 @@ export const $loadedImage = createStore<LoadedImage | null>(null)
   .reset(imageCleared);
 
 export const $canExportImage = $loadedImage.map((image) => image !== null);
+
+// Effect that revokes an object URL when a LoadedImage is no longer needed.
+export const releaseImageFx = createEffect<LoadedImage, void>((image) => {
+  URL.revokeObjectURL(image.objectUrl);
+});
+
+// Tracks the image that was loaded before the current one so we can release its URL.
+// This store intentionally has no .on handlers — it is updated via sample after
+// $loadedImage has already advanced, so it always lags one step behind.
+const $prevLoadedImage = createStore<LoadedImage | null>(null);
+
+// When a new image is selected and there was already one loaded, release the old URL.
+sample({ clock: imageSelected, source: $prevLoadedImage, filter: Boolean, target: releaseImageFx });
+// When the image is cleared, release the current URL.
+sample({ clock: imageCleared, source: $prevLoadedImage, filter: Boolean, target: releaseImageFx });
+
+// Advance the prev pointer to the value $loadedImage just updated to.
+sample({ clock: imageSelected, source: $loadedImage, target: $prevLoadedImage });
+// Reset the prev pointer on clear.
+sample({ clock: imageCleared, fn: (): null => null, target: $prevLoadedImage });
 
 export function createLoadedImage(file: File): LoadedImage {
   return {
