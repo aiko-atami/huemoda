@@ -17,6 +17,7 @@ import {
   filtersReset,
   formatParameterValue,
 } from "../../../entities/filter-chain";
+import { $canExportImage } from "../../../entities/image";
 import { Button, ListControl, PointPicker, Slider, Toggle } from "../../../shared/ui";
 
 export function FilterPanel() {
@@ -26,6 +27,7 @@ export function FilterPanel() {
     addedFilterDefinitions,
     filterChain,
     hasActiveFilters,
+    hasImage,
     addFilter,
     removeFilter,
     resetFilters,
@@ -35,6 +37,7 @@ export function FilterPanel() {
     addedFilterDefinitions: $addedFilterDefinitions,
     filterChain: $filterChain,
     hasActiveFilters: $hasActiveFilters,
+    hasImage: $canExportImage,
     addFilter: filterAdded,
     removeFilter: filterRemoved,
     resetFilters: filtersReset,
@@ -59,7 +62,7 @@ export function FilterPanel() {
               size="sm"
               icon={<Plus size={14} />}
               onClick={() => setShowPicker(true)}
-              disabled={availableFilterDefinitions.length === 0}
+              disabled={!hasImage || availableFilterDefinitions.length === 0}
             >
               Add filter
             </Button>
@@ -77,6 +80,7 @@ export function FilterPanel() {
                 size="sm"
                 icon={<Plus size={14} />}
                 onClick={() => setShowPicker(true)}
+                disabled={!hasImage}
               >
                 Add filter
               </Button>
