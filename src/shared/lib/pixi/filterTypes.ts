@@ -79,6 +79,19 @@ export type PixiFilterValues = {
     centerX: number;
     centerY: number;
   };
+  lensFlare: {
+    enabled: boolean;
+    intensity: number;
+    power: number;
+    positionX: number;
+    positionY: number;
+    artifacts: number;
+    rings: number;
+    streaks: number;
+    rotation: number;
+    hue: number;
+    fringe: number;
+  };
 };
 
 export function createEmptyPixiFilterValues(): PixiFilterValues {
@@ -162,6 +175,19 @@ export function createEmptyPixiFilterValues(): PixiFilterValues {
       twist: 0,
       centerX: 0.5,
       centerY: 0.5,
+    },
+    lensFlare: {
+      enabled: false,
+      intensity: 0.5,
+      power: 3,
+      positionX: 0.3,
+      positionY: 0.25,
+      artifacts: 0.5,
+      rings: 0.3,
+      streaks: 2,
+      rotation: 0,
+      hue: 0,
+      fringe: 0,
     },
   };
 }
