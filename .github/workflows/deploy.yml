@@ -35,6 +35,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Panda CSS
+        run: pnpm panda codegen
+
       - name: Type check
         run: pnpm exec tsgo -b
 
