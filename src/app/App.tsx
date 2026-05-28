@@ -1,10 +1,12 @@
-import { EditorPage } from "../pages/editor";
-import { LutConverterPage } from "../pages/lut-converter";
+import { RouterProvider } from "@effector/router-react";
+import { router, AppRoutes } from "./router";
+import { NavBar } from "../widgets/nav-bar";
 
 export function App() {
-  if (window.location.pathname === "/lut-converter") {
-    return <LutConverterPage />;
-  }
-
-  return <EditorPage />;
+  return (
+    <RouterProvider router={router}>
+      <NavBar />
+      <AppRoutes />
+    </RouterProvider>
+  );
 }

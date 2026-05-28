@@ -171,7 +171,6 @@ export function LutConverterPage() {
       <section className="lut-converter" aria-label="HueModa LUT converter">
         <header className="lut-converter__header">
           <div className="editor-title">
-            <p className="editor-title__eyebrow">HueModa</p>
             <h1>LUT Converter</h1>
           </div>
 

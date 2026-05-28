@@ -112,7 +112,6 @@ export function EditorWorkspace() {
       <section className="editor-main">
         <header className="editor-topbar">
           <div className="editor-title">
-            <p className="editor-title__eyebrow">HueModa</p>
             <h1>Photo Lab</h1>
           </div>
 

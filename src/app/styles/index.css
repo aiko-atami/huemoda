@@ -24,6 +24,7 @@
   --radius-lg: 16px;
   --rail-width: 56px;
   --panel-width: 320px;
+  --nav-height: 40px;
   --font-sans:
     Geist, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -68,14 +69,14 @@ button {
 }
 
 .app-shell {
-  min-height: 100svh;
+  min-height: calc(100svh - var(--nav-height));
   isolation: isolate;
 }
 
 .editor-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--panel-width);
-  height: 100svh;
+  height: calc(100svh - var(--nav-height));
   min-height: 620px;
   background: var(--background);
 }
@@ -450,7 +451,7 @@ button {
 }
 
 .lut-converter-shell {
-  min-height: 100svh;
+  min-height: calc(100svh - var(--nav-height));
   overflow: auto;
   background:
     linear-gradient(rgba(120, 113, 148, 0.08) 1px, transparent 1px),
@@ -460,7 +461,7 @@ button {
 
 .lut-converter {
   display: grid;
-  min-height: 100svh;
+  min-height: calc(100svh - var(--nav-height));
   grid-template-rows: auto minmax(0, 1fr);
 }
 
