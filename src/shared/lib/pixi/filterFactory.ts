@@ -19,6 +19,7 @@ import {
 import type { PixiFilterValues } from "./filterTypes";
 
 export type PixiFilterContext = {
+  grainSeed?: number;
   height: number;
   lutTextures?: ReadonlyMap<string, Texture>;
   width: number;
@@ -60,7 +61,7 @@ export function createPixiFilters(
   if (lut.enabled && lut.intensity > 0) {
     const lutTexture = context?.lutTextures?.get(lut.presetId);
 
-    if (lutTexture !== undefined) {
+    if (lutTexture !== undefined && lutTexture.source) {
       filters.push(
         new LutFilter({
           intensity: lut.intensity,
@@ -86,7 +87,7 @@ export function createPixiFilters(
       new GrainFilter({
         intensity: grain.intensity,
         grainSize: grain.grainSize,
-        seed: Math.random(),
+        seed: context?.grainSeed ?? Math.random(),
       }),
     );
   }
@@ -230,13 +231,24 @@ export function createPixiFilters(
 }
 
 function getLightLeakColor(warmth: number): number {
-  if (warmth >= 65) {
-    return 0xf3ffcc;
+  const t = Math.max(0, Math.min(100, warmth)) / 100;
+
+  // Piecewise lerp: blue (0%) → lavender (50%) → warm (100%)
+  let r: number;
+  let g: number;
+  let b: number;
+
+  if (t < 0.5) {
+    const f = t * 2;
+    r = 0x9d + (0xcd - 0x9d) * f;
+    g = 0xb9 + (0xcd - 0xb9) * f;
+    b = 0xff;
+  } else {
+    const f = (t - 0.5) * 2;
+    r = 0xcd + (0xf3 - 0xcd) * f;
+    g = 0xcd + (0xff - 0xcd) * f;
+    b = 0xff + (0xcc - 0xff) * f;
   }
 
-  if (warmth >= 35) {
-    return 0xcdcdff;
-  }
-
-  return 0x9db9ff;
+  return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(b);
 }

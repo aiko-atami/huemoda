@@ -27,8 +27,6 @@ type ApplicationWithPlugins = {
   _plugins?: PixiApplicationPluginEntry[];
 };
 
-dedupeApplicationPlugins();
-
 export class PixiPhotoRenderer {
   private readonly host: HTMLElement;
   private readonly readyPromise: Promise<void>;
@@ -44,9 +42,16 @@ export class PixiPhotoRenderer {
   private loadToken = 0;
   private filterValues: PixiFilterValues = createEmptyPixiFilterValues();
   private activeFilters: Filter[] = [];
+  private readonly grainSeed = Math.random();
+  private static pluginsDeduped = false;
   private readonly lutTextures = new Map<string, Texture>();
 
   constructor(host: HTMLElement) {
+    if (!PixiPhotoRenderer.pluginsDeduped) {
+      dedupeApplicationPlugins();
+      PixiPhotoRenderer.pluginsDeduped = true;
+    }
+
     this.host = host;
     this.readyPromise = this.initialize();
   }
@@ -253,8 +258,8 @@ export class PixiPhotoRenderer {
       return;
     }
 
-    const rendererWidth = this.app.renderer.width;
-    const rendererHeight = this.app.renderer.height;
+    const rendererWidth = this.app.screen.width;
+    const rendererHeight = this.app.screen.height;
     const padding = Math.min(56, Math.max(24, Math.min(rendererWidth, rendererHeight) * 0.08));
     const availableWidth = Math.max(1, rendererWidth - padding * 2);
     const availableHeight = Math.max(1, rendererHeight - padding * 2);
@@ -278,6 +283,7 @@ export class PixiPhotoRenderer {
       width: this.texture.width,
       height: this.texture.height,
       lutTextures: this.lutTextures,
+      grainSeed: this.grainSeed,
     });
     this.sourceSprite.filters = this.activeFilters.length === 0 ? null : this.activeFilters;
     this.updateFilteredTexture();
@@ -294,8 +300,8 @@ export class PixiPhotoRenderer {
       return;
     }
 
-    const rw = this.app.renderer.width;
-    const rh = this.app.renderer.height;
+    const rw = this.app.screen.width;
+    const rh = this.app.screen.height;
     const vz = this.viewport.scale.x;
 
     // Половина размера спрайта на экране
@@ -308,14 +314,14 @@ export class PixiPhotoRenderer {
     const overlapY = Math.max(60, hh * 0.25);
 
     // Центр спрайта в экранных координатах
-    const scx = this.viewport.x + (rw / 2) * vz;
-    const scy = this.viewport.y + (rh / 2) * vz;
+    const scx = this.viewport.x + this.displaySprite.x * vz;
+    const scy = this.viewport.y + this.displaySprite.y * vz;
 
     const clampedScx = Math.max(overlapX - hw, Math.min(rw - overlapX + hw, scx));
     const clampedScy = Math.max(overlapY - hh, Math.min(rh - overlapY + hh, scy));
 
-    this.viewport.x = clampedScx - (rw / 2) * vz;
-    this.viewport.y = clampedScy - (rh / 2) * vz;
+    this.viewport.x = clampedScx - this.displaySprite.x * vz;
+    this.viewport.y = clampedScy - this.displaySprite.y * vz;
   }
 
   private clearSprite(): void {
@@ -370,7 +376,6 @@ export class PixiPhotoRenderer {
 
   private destroyApp(): void {
     this.app?.destroy(true, { children: true });
-    for (const texture of this.lutTextures.values()) texture.destroy(true);
     this.lutTextures.clear();
     this.app = null;
     this.initialized = false;
@@ -379,7 +384,14 @@ export class PixiPhotoRenderer {
   private async loadLutTextures(): Promise<void> {
     const results = await Promise.allSettled(
       LUT_PRESETS.map(async (preset) => {
-        const texture = await Assets.load<Texture>(preset.file);
+        const texture = await Assets.load<Texture>({
+          src: preset.file,
+          data: null,
+        });
+
+        if (!texture.source) {
+          throw new Error(`[LUT] No source for preset "${preset.id}"`);
+        }
 
         texture.source.style.scaleMode = "linear";
         texture.source.style.addressMode = "clamp-to-edge";
@@ -394,6 +406,8 @@ export class PixiPhotoRenderer {
     for (const result of results) {
       if (result.status === "fulfilled") {
         this.lutTextures.set(result.value.presetId, result.value.texture);
+      } else {
+        console.warn("[LUT] Failed to load preset:", result.reason);
       }
     }
   }
