@@ -9,7 +9,7 @@ import {
   type LoadedImage,
   releaseLoadedImage,
 } from "../../../entities/image";
-import { $filterChain, toPixiFilterValues } from "../../../entities/filter-chain";
+import { $pixiFilterValues } from "../../../entities/filter-chain";
 import { ExportButton } from "../../../features/export-image";
 import { ImageUploadButton } from "../../../features/image-upload";
 import { FilterPanel } from "../../../features/filter-controls";
@@ -59,7 +59,6 @@ const PixiCanvas = lazy(async () => {
 export function EditorWorkspace() {
   const latestImageRef = useRef<LoadedImage | null>(null);
   const {
-    filterChain,
     image,
     clearImage,
     exportError,
@@ -69,8 +68,8 @@ export function EditorWorkspace() {
     onExport,
     onFormatChange,
     onRendererChanged,
+    pixiFilterValues,
   } = useUnit({
-    filterChain: $filterChain,
     image: $loadedImage,
     clearImage: imageCleared,
     exportError: $exportError,
@@ -80,8 +79,8 @@ export function EditorWorkspace() {
     onExport: exportTriggered,
     onFormatChange: exportFormatChanged,
     onRendererChanged: rendererChanged,
+    pixiFilterValues: $pixiFilterValues,
   });
-  const pixiFilterValues = toPixiFilterValues(filterChain);
 
   useEffect(() => {
     latestImageRef.current = image;

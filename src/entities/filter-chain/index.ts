@@ -2,6 +2,8 @@ export {
   $addedFilterDefinitions,
   $filterChain,
   $hasActiveFilters,
+  $lutPreviewPresetId,
+  $pixiFilterValues,
   DEFAULT_LUT_PRESET_ID,
   FILTER_DEFINITIONS,
   LUT_PRESETS,
@@ -11,6 +13,7 @@ export {
   filterToggled,
   filtersReset,
   formatParameterValue,
+  lutPreviewPresetChanged,
   toPixiFilterValues,
 } from "./model";
 export type {

@@ -1,4 +1,4 @@
-import { createEvent, createStore } from "effector";
+import { combine, createEvent, createStore } from "effector";
 import type { PixiFilterValues } from "../../shared/lib/pixi";
 import { DEFAULT_LUT_PRESET_ID, LUT_PRESETS } from "../../shared/lib/pixi";
 import type { LutPreset, LutPresetId } from "../../shared/lib/pixi";
@@ -637,6 +637,7 @@ export const filterRemoved = createEvent<FilterId>();
 export const filterToggled = createEvent<FilterId>();
 export const filterParameterChanged = createEvent<FilterParameterChangedPayload>();
 export const filtersReset = createEvent();
+export const lutPreviewPresetChanged = createEvent<string | null>();
 
 export const $filterChain = createStore<FilterChainState>(createInitialFilterState())
   .on(filterAdded, addFilterToChain)
@@ -644,6 +645,25 @@ export const $filterChain = createStore<FilterChainState>(createInitialFilterSta
   .on(filterToggled, toggleFilterState)
   .on(filterParameterChanged, updateFilterParameterState)
   .reset(filtersReset);
+
+export const $lutPreviewPresetId = createStore<string | null>(null).on(
+  lutPreviewPresetChanged,
+  (_, previewId) => previewId,
+);
+
+export const $pixiFilterValues = combine(
+  $filterChain,
+  $lutPreviewPresetId,
+  (filterChain, previewPresetId): PixiFilterValues => {
+    const values = toPixiFilterValues(filterChain);
+
+    if (previewPresetId !== null) {
+      values.lut = { ...values.lut, presetId: previewPresetId };
+    }
+
+    return values;
+  },
+);
 
 export const $addedFilterDefinitions = $filterChain.map((state) =>
   FILTER_DEFINITIONS.filter((definition) => state[definition.id].added),

@@ -13,6 +13,7 @@ type ListOption = {
 type ListControlProps = {
   disabled?: boolean;
   label: string;
+  onPreview?: (value: string | null) => void;
   onValueChange: (value: string) => void;
   options: readonly ListOption[];
   value: string;
@@ -125,6 +126,7 @@ const indicatorClass = css({
 export function ListControl({
   disabled = false,
   label,
+  onPreview,
   onValueChange,
   options,
   value,
@@ -160,10 +162,10 @@ export function ListControl({
                 key={option.value}
                 className={itemClass}
                 onMouseEnter={() => {
-                  if (!disabled) onValueChange(option.value);
+                  if (!disabled) onPreview?.(option.value);
                 }}
                 onMouseLeave={() => {
-                  if (!disabled) onValueChange(committedRef.current);
+                  if (!disabled) onPreview?.(null);
                 }}
               >
                 <Radio.Root value={option.value} className={radioRootClass}>

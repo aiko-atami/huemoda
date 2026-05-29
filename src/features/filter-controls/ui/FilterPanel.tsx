@@ -16,6 +16,7 @@ import {
   filterToggled,
   filtersReset,
   formatParameterValue,
+  lutPreviewPresetChanged,
 } from "../../../entities/filter-chain";
 import { $canExportImage } from "../../../entities/image";
 import { Button, ListControl, PointPicker, Slider, Toggle } from "../../../shared/ui";
@@ -29,6 +30,7 @@ export function FilterPanel() {
     hasActiveFilters,
     hasImage,
     addFilter,
+    previewLutPreset,
     removeFilter,
     resetFilters,
     setParameter,
@@ -39,6 +41,7 @@ export function FilterPanel() {
     hasActiveFilters: $hasActiveFilters,
     hasImage: $canExportImage,
     addFilter: filterAdded,
+    previewLutPreset: lutPreviewPresetChanged,
     removeFilter: filterRemoved,
     resetFilters: filtersReset,
     setParameter: filterParameterChanged,
@@ -135,6 +138,10 @@ export function FilterPanel() {
                           disabled: !filterState.enabled,
                           filterId: definition.id,
                           onChange: setParameter,
+                          onPreview:
+                            definition.id === "lut" && parameter.id === "presetId"
+                              ? previewLutPreset
+                              : undefined,
                           parameter,
                           parameters: filterState.parameters,
                         }),
@@ -221,12 +228,14 @@ function renderParameterControl({
   disabled,
   filterId,
   onChange,
+  onPreview,
   parameter,
   parameters,
 }: {
   disabled: boolean;
   filterId: FilterId;
   onChange: (payload: FilterParameterChangedPayload) => void;
+  onPreview?: (value: string | null) => void;
   parameter: FilterParameterDefinition;
   parameters: Record<string, number | string>;
 }) {
@@ -263,6 +272,7 @@ function renderParameterControl({
         options={parameter.options}
         value={typeof value === "string" ? value : parameter.defaultValue}
         disabled={disabled}
+        onPreview={onPreview}
         onValueChange={(nextValue) =>
           onChange({
             filterId,
