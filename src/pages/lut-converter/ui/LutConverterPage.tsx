@@ -9,6 +9,7 @@ import {
   parseCubeLut,
   type CubeLut,
 } from "../lib/cubeLut";
+import { formatFileSize } from "../../../shared/lib/format";
 
 const metaContainerClass = css({
   display: "flex",
@@ -43,18 +44,6 @@ type ConversionResult = {
   fileName: string;
   objectUrl: string;
 };
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export function LutConverterPage() {
   const inputId = useId();

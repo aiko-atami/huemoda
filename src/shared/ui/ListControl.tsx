@@ -1,4 +1,4 @@
-import { useId, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { Radio } from "@base-ui/react/radio";
 import { ScrollArea } from "@base-ui/react/scroll-area";
@@ -131,6 +131,10 @@ export function ListControl({
 }: ListControlProps) {
   const labelId = useId();
   const committedRef = useRef(value);
+
+  useEffect(() => {
+    committedRef.current = value;
+  }, [value]);
 
   return (
     <div className={containerClass} aria-disabled={disabled || undefined}>

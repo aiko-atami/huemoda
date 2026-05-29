@@ -102,7 +102,8 @@ export function Slider({
 }: SliderProps) {
   const id = useId();
   const outputId = `${id}-value`;
-  const percent = ((value - min) / (max - min)) * 100;
+  const range = max - min;
+  const percent = range === 0 ? 0 : ((value - min) / range) * 100;
   const style = {
     "--slider-fill": `${Math.min(Math.max(percent, 0), 100)}%`,
   } as CSSProperties;

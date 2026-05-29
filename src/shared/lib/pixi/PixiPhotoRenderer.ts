@@ -370,6 +370,7 @@ export class PixiPhotoRenderer {
 
   private destroyApp(): void {
     this.app?.destroy(true, { children: true });
+    for (const texture of this.lutTextures.values()) texture.destroy(true);
     this.lutTextures.clear();
     this.app = null;
     this.initialized = false;

@@ -61,7 +61,9 @@ export const exportImageFx = attach({
 export const $isExporting = exportImageFx.pending;
 
 export const $exportError = createStore<string | null>(null)
-  .on(exportImageFx.fail, () => "Export failed")
+  .on(exportImageFx.fail, (_, { error }) =>
+    error instanceof Error ? error.message : "Export failed",
+  )
   .reset(exportTriggered);
 
 // Trigger export only when renderer is ready.
