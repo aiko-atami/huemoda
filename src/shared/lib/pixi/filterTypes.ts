@@ -17,6 +17,7 @@ export type PixiFilterValues = {
     midtones: number;
     highlights: number;
     structure: number;
+    grainShape: number;
     positive: number;
     resolutionLoss: number;
   };
@@ -140,6 +141,7 @@ export function createEmptyPixiFilterValues(): PixiFilterValues {
       midtones: 0.4,
       highlights: 0.8,
       structure: 0.55,
+      grainShape: 0.0,
       positive: 1.0,
       resolutionLoss: 0.12,
     },
