@@ -147,7 +147,7 @@ void main(void) {
     float effectiveStructure = uStructure * mix(1.0, 0.3, uGrainShape);
 
     // 4. Physical-pixel coordinates
-    float effectiveSize = max(uSize, 1.0);
+    float effectiveSize = max(uSize, 0.5);
     vec2 cell = floor(uv * uInputSize.xy / effectiveSize);
     float seed = uSeed;
 
@@ -368,7 +368,7 @@ fn mainFragment(
 
   let effectiveStructure = u.uStructure * mix(1.0, 0.3, u.uGrainShape);
 
-  let effectiveSize = max(u.uSize, 1.0);
+  let effectiveSize = max(u.uSize, 0.5);
   let cell = floor(uv * gfu.uInputSize.xy / effectiveSize);
   let seed = u.uSeed;
 
@@ -568,6 +568,6 @@ export class GrainV2Filter extends Filter {
   }
 
   setNormalizedSize(sizeAt1920px: number, rendererWidth: number) {
-    this._uniforms.uSize = Math.max(1.0, sizeAt1920px * (rendererWidth / 1920));
+    this._uniforms.uSize = Math.max(0.5, sizeAt1920px * (rendererWidth / 1920));
   }
 }
