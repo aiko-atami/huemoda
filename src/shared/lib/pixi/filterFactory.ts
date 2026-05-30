@@ -103,7 +103,6 @@ export function createPixiFilters(
         shadows: grainV2.shadows,
         midtones: grainV2.midtones,
         highlights: grainV2.highlights,
-        structure: grainV2.structure,
         grainShape: grainV2.grainShape,
         positive: grainV2.positive,
         resolutionLoss: grainV2.resolutionLoss,

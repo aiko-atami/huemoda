@@ -22,7 +22,6 @@ uniform float uChroma;
 uniform float uShadows;
 uniform float uMidtones;
 uniform float uHighlights;
-uniform float uStructure;
 uniform float uGrainShape;
 uniform float uPositive;
 uniform float uResolutionLoss;
@@ -70,12 +69,14 @@ vec2 hash2(vec2 p) {
     return fract((p3.xx + p3.yz) * p3.zy);
 }
 
-float clusteredGrain(vec2 cell, float seed, float structure) {
+float clusteredGrain(vec2 cell, float seed, float shape) {
     vec2 sv = vec2(seed, seed * 1.7 + 0.3);
 
     vec2 jitter = hash2(cell + sv) * 2.0 - 1.0;
     float sizeVar = hash1(cell + sv + vec2(19.7, 43.1)) * 0.6 + 0.7;
     vec2 px = cell + jitter * 0.45 / sizeVar;
+    float aspect = mix(1.0, 2.0, shape);
+    vec2 shapedPx = vec2(px.x * aspect, px.y);
 
     float angle = hash1(cell + vec2(53.0, 97.0) + sv) * 6.2832;
     float ca = cos(angle); float sa = sin(angle);
@@ -84,14 +85,14 @@ float clusteredGrain(vec2 cell, float seed, float structure) {
     mat2 r1 = cellRot * mat2( 0.80, -0.60,  0.60,  0.80);
     mat2 r2 = cellRot * mat2( 0.36, -0.93,  0.93,  0.36);
 
-    float n1 = snoise(px * sizeVar + sv) * 0.5 + 0.5;
-    float n2 = snoise(r1 * px * sizeVar * 2.17 + sv + vec2(37.1, 59.3)) * 0.5 + 0.5;
-    float n3 = snoise(r2 * px * sizeVar * 5.13 + sv + vec2(71.7, 113.1)) * 0.5 + 0.5;
+    float n1 = snoise(shapedPx * sizeVar + sv) * 0.5 + 0.5;
+    float n2 = snoise(r1 * shapedPx * sizeVar * 2.17 + sv + vec2(37.1, 59.3)) * 0.5 + 0.5;
+    float n3 = snoise(r2 * shapedPx * sizeVar * 5.13 + sv + vec2(71.7, 113.1)) * 0.5 + 0.5;
     float g = n1 * 0.55 + n2 * 0.30 + n3 * 0.15;
 
     float thVar = hash1(cell + vec2(131.0, 173.0) + sv) * 0.08 - 0.04;
-    float lo = mix(0.40, 0.30, structure) + thVar;
-    float hi = mix(0.60, 0.70, structure) + thVar;
+    float lo = 0.345 + thVar;
+    float hi = 0.655 + thVar;
     float mid = mix(lo, hi, 0.5);
     float k = 6.0;
     g = 1.0 / (1.0 + exp(-k * (g - mid)));
@@ -143,10 +144,7 @@ void main(void) {
     float tonalWeight = maskS * uShadows + maskM * uMidtones + maskH * uHighlights;
     tonalWeight = max(0.12, tonalWeight);
 
-    // 3. Effective structure: classic vs T-grain
-    float effectiveStructure = uStructure * mix(1.0, 0.3, uGrainShape);
-
-    // 4. Physical-pixel coordinates
+    // 3. Physical-pixel coordinates
     float effectiveSize = max(uSize, 0.5);
     vec2 cell = floor(uv * uInputSize.xy / effectiveSize);
     float seed = uSeed;
@@ -154,18 +152,18 @@ void main(void) {
     // 5. Multi-layer grain (emulsion depth)
     vec2 shift1 = vec2(0.3, 0.2) * effectiveSize / uInputSize.xy;
     vec2 cell1 = floor((uv + shift1) * uInputSize.xy / effectiveSize);
-    float g1 = clusteredGrain(cell1, seed, effectiveStructure);
+    float g1 = clusteredGrain(cell1, seed, uGrainShape);
 
     vec2 shift2 = vec2(-0.2, 0.4) * effectiveSize / uInputSize.xy;
     vec2 cell2 = floor((uv + shift2) * uInputSize.xy / effectiveSize);
-    float g2 = clusteredGrain(cell2, seed + 5.17, effectiveStructure * 0.8);
+    float g2 = clusteredGrain(cell2, seed + 5.17, uGrainShape);
 
     float gMono = g1 * 0.6 + g2 * 0.4;
 
     // 6. Chroma variation: independent seed per channel
-    float gR = mix(gMono, clusteredGrain(cell + vec2(17.13, 0.0), seed + 1.0, effectiveStructure), uChroma);
-    float gG = mix(gMono, clusteredGrain(cell + vec2(71.59, 0.0), seed + 2.0, effectiveStructure), uChroma);
-    float gB = mix(gMono, clusteredGrain(cell + vec2(31.77, 0.0), seed + 3.0, effectiveStructure), uChroma);
+    float gR = mix(gMono, clusteredGrain(cell + vec2(17.13, 0.0), seed + 1.0, uGrainShape), uChroma);
+    float gG = mix(gMono, clusteredGrain(cell + vec2(71.59, 0.0), seed + 2.0, uGrainShape), uChroma);
+    float gB = mix(gMono, clusteredGrain(cell + vec2(31.77, 0.0), seed + 3.0, uGrainShape), uChroma);
     vec3 grain = vec3(gR, gG, gB);
 
     // 7. Residual halides in deep shadows
@@ -175,7 +173,7 @@ void main(void) {
 
     // 8. Positive-process wheat: different per film type
     vec2 cellPos = floor(uv * uInputSize.xy / max(effectiveSize * 1.3, 1.0));
-    float posGrain = clusteredGrain(cellPos, seed + 7.31, effectiveStructure * 0.6);
+    float posGrain = clusteredGrain(cellPos, seed + 7.31, uGrainShape);
     float hlMask = smoothstep(0.75, 1.0, L);
     float shMask = smoothstep(0.25, 0.0, L);
     float posProcessGrain = mix(
@@ -227,7 +225,6 @@ struct GrainV2Uniforms {
   uShadows: f32,
   uMidtones: f32,
   uHighlights: f32,
-  uStructure: f32,
   uGrainShape: f32,
   uPositive: f32,
   uResolutionLoss: f32,
@@ -290,12 +287,14 @@ fn hash2(p: vec2<f32>) -> vec2<f32> {
   return fract((vec2<f32>(p3.x, p3.x) + p3.yz) * p3.zy);
 }
 
-fn clusteredGrain(cell: vec2<f32>, seed: f32, structure: f32) -> f32 {
+fn clusteredGrain(cell: vec2<f32>, seed: f32, shape: f32) -> f32 {
   let sv = vec2<f32>(seed, seed * 1.7 + 0.3);
 
   let jitter = hash2(cell + sv) * 2.0 - 1.0;
   let sizeVar = hash1(cell + sv + vec2<f32>(19.7, 43.1)) * 0.6 + 0.7;
   let px = cell + jitter * 0.45 / sizeVar;
+  let aspect = mix(1.0, 2.0, shape);
+  let shapedPx = vec2<f32>(px.x * aspect, px.y);
 
   let angle = hash1(cell + vec2<f32>(53.0, 97.0) + sv) * 6.2832;
   let ca = cos(angle);
@@ -305,14 +304,14 @@ fn clusteredGrain(cell: vec2<f32>, seed: f32, structure: f32) -> f32 {
   let r1 = cellRot * mat2x2<f32>( 0.80, -0.60,  0.60,  0.80);
   let r2 = cellRot * mat2x2<f32>( 0.36, -0.93,  0.93,  0.36);
 
-  let n1 = snoise(px * sizeVar + sv) * 0.5 + 0.5;
-  let n2 = snoise(r1 * px * sizeVar * 2.17 + sv + vec2<f32>(37.1, 59.3)) * 0.5 + 0.5;
-  let n3 = snoise(r2 * px * sizeVar * 5.13 + sv + vec2<f32>(71.7, 113.1)) * 0.5 + 0.5;
+  let n1 = snoise(shapedPx * sizeVar + sv) * 0.5 + 0.5;
+  let n2 = snoise(r1 * shapedPx * sizeVar * 2.17 + sv + vec2<f32>(37.1, 59.3)) * 0.5 + 0.5;
+  let n3 = snoise(r2 * shapedPx * sizeVar * 5.13 + sv + vec2<f32>(71.7, 113.1)) * 0.5 + 0.5;
   var g = n1 * 0.55 + n2 * 0.30 + n3 * 0.15;
 
   let thVar = hash1(cell + vec2<f32>(131.0, 173.0) + sv) * 0.08 - 0.04;
-  let lo = mix(0.40, 0.30, structure) + thVar;
-  let hi = mix(0.60, 0.70, structure) + thVar;
+  let lo = 0.345 + thVar;
+  let hi = 0.655 + thVar;
   let mid = mix(lo, hi, 0.5);
   let k = 6.0;
   g = 1.0 / (1.0 + exp(-k * (g - mid)));
@@ -366,25 +365,23 @@ fn mainFragment(
   var tonalWeight = maskS * u.uShadows + maskM * u.uMidtones + maskH * u.uHighlights;
   tonalWeight = max(0.12, tonalWeight);
 
-  let effectiveStructure = u.uStructure * mix(1.0, 0.3, u.uGrainShape);
-
   let effectiveSize = max(u.uSize, 0.5);
   let cell = floor(uv * gfu.uInputSize.xy / effectiveSize);
   let seed = u.uSeed;
 
   let shift1 = vec2<f32>(0.3, 0.2) * effectiveSize / gfu.uInputSize.xy;
   let cell1 = floor((uv + shift1) * gfu.uInputSize.xy / effectiveSize);
-  let g1 = clusteredGrain(cell1, seed, effectiveStructure);
+  let g1 = clusteredGrain(cell1, seed, u.uGrainShape);
 
   let shift2 = vec2<f32>(-0.2, 0.4) * effectiveSize / gfu.uInputSize.xy;
   let cell2 = floor((uv + shift2) * gfu.uInputSize.xy / effectiveSize);
-  let g2 = clusteredGrain(cell2, seed + 5.17, effectiveStructure * 0.8);
+  let g2 = clusteredGrain(cell2, seed + 5.17, u.uGrainShape);
 
   let gMono = g1 * 0.6 + g2 * 0.4;
 
-  let gR = mix(gMono, clusteredGrain(cell + vec2<f32>(17.13, 0.0), seed + 1.0, effectiveStructure), u.uChroma);
-  let gG = mix(gMono, clusteredGrain(cell + vec2<f32>(71.59, 0.0), seed + 2.0, effectiveStructure), u.uChroma);
-  let gB = mix(gMono, clusteredGrain(cell + vec2<f32>(31.77, 0.0), seed + 3.0, effectiveStructure), u.uChroma);
+  let gR = mix(gMono, clusteredGrain(cell + vec2<f32>(17.13, 0.0), seed + 1.0, u.uGrainShape), u.uChroma);
+  let gG = mix(gMono, clusteredGrain(cell + vec2<f32>(71.59, 0.0), seed + 2.0, u.uGrainShape), u.uChroma);
+  let gB = mix(gMono, clusteredGrain(cell + vec2<f32>(31.77, 0.0), seed + 3.0, u.uGrainShape), u.uChroma);
   let grain = vec3<f32>(gR, gG, gB);
 
   let halideNoise = snoise(cell * 2.7 + vec2<f32>(seed * 2.3, seed * 1.1 + 7.0)) * 0.5 + 0.5;
@@ -392,7 +389,7 @@ fn mainFragment(
   let halideResidue = vec3<f32>(halideNoise * shadowDepth * 0.06);
 
   let cellPos = floor(uv * gfu.uInputSize.xy / max(effectiveSize * 1.3, 1.0));
-  let posGrain = clusteredGrain(cellPos, seed + 7.31, effectiveStructure * 0.6);
+  let posGrain = clusteredGrain(cellPos, seed + 7.31, u.uGrainShape);
   let hlMask = smoothstep(0.75, 1.0, L);
   let shMask = smoothstep(0.25, 0.0, L);
   let posProcessGrain = mix(
@@ -431,7 +428,6 @@ export type GrainV2Options = {
   shadows?: number;
   midtones?: number;
   highlights?: number;
-  structure?: number;
   grainShape?: number;
   positive?: number;
   resolutionLoss?: number;
@@ -442,13 +438,12 @@ export type GrainV2Options = {
 
 export class GrainV2Filter extends Filter {
   static readonly defaults: Required<GrainV2Options> = {
-    amount: 0.55,
-    size: 1.8,
+    amount: 0.1,
+    size: 0.5,
     chroma: 0.3,
     shadows: 0.7,
     midtones: 0.4,
     highlights: 0.8,
-    structure: 0.55,
     grainShape: 0.0,
     positive: 1.0,
     resolutionLoss: 0.12,
@@ -483,7 +478,6 @@ export class GrainV2Filter extends Filter {
           uShadows: { value: opts.shadows, type: "f32" },
           uMidtones: { value: opts.midtones, type: "f32" },
           uHighlights: { value: opts.highlights, type: "f32" },
-          uStructure: { value: opts.structure, type: "f32" },
           uGrainShape: { value: opts.grainShape, type: "f32" },
           uPositive: { value: opts.positive, type: "f32" },
           uResolutionLoss: { value: opts.resolutionLoss, type: "f32" },
@@ -537,13 +531,6 @@ export class GrainV2Filter extends Filter {
   }
   set highlights(v: number) {
     this._uniforms.uHighlights = v;
-  }
-
-  get structure(): number {
-    return this._uniforms.uStructure;
-  }
-  set structure(v: number) {
-    this._uniforms.uStructure = v;
   }
 
   get grainShape(): number {

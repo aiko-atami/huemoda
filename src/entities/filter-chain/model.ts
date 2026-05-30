@@ -200,7 +200,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
         min: 0,
         max: 1,
         step: 0.01,
-        defaultValue: 0.55,
+        defaultValue: 0.1,
       },
       {
         id: "size",
@@ -209,7 +209,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
         min: 0.5,
         max: 4,
         step: 0.1,
-        defaultValue: 1.8,
+        defaultValue: 0.5,
         unit: "px",
       },
       {
@@ -247,15 +247,6 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
         max: 1,
         step: 0.01,
         defaultValue: 0.8,
-      },
-      {
-        id: "structure",
-        label: "Structure",
-        type: "range",
-        min: 0,
-        max: 1,
-        step: 0.01,
-        defaultValue: 0.55,
       },
       {
         id: "grainShape",
@@ -929,7 +920,6 @@ export function toPixiFilterValues(filterChain: FilterChainState): PixiFilterVal
       shadows: getNumericParameter(filterChain.grainV2, "shadows"),
       midtones: getNumericParameter(filterChain.grainV2, "midtones"),
       highlights: getNumericParameter(filterChain.grainV2, "highlights"),
-      structure: getNumericParameter(filterChain.grainV2, "structure"),
       grainShape: getNumericParameter(filterChain.grainV2, "grainShape"),
       positive: getStringParameter(filterChain.grainV2, "filmType") === "positive" ? 0 : 1,
       resolutionLoss: getNumericParameter(filterChain.grainV2, "resolutionLoss"),
