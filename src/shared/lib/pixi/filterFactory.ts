@@ -1,6 +1,7 @@
 import type { Filter, Texture } from "pixi.js";
 import { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
 import { GrainFilter } from "./GrainFilter";
+import { GrainV2Filter } from "./GrainV2Filter";
 import { LensFlareFilter } from "./LensFlareFilter";
 import { LutFilter } from "./LutFilter";
 import { SpinBlurFilter } from "./SpinBlurFilter";
@@ -38,6 +39,7 @@ export function createPixiFilters(
     glitch,
     glow,
     grain,
+    grainV2,
     lensFlare,
     lightLeak,
     lut,
@@ -87,6 +89,23 @@ export function createPixiFilters(
       new GrainFilter({
         intensity: grain.intensity,
         grainSize: grain.grainSize,
+        seed: context?.grainSeed ?? Math.random(),
+      }),
+    );
+  }
+
+  if (grainV2.enabled && grainV2.amount > 0) {
+    filters.push(
+      new GrainV2Filter({
+        amount: grainV2.amount,
+        size: grainV2.size,
+        chroma: grainV2.chroma,
+        shadows: grainV2.shadows,
+        midtones: grainV2.midtones,
+        highlights: grainV2.highlights,
+        structure: grainV2.structure,
+        positive: grainV2.positive,
+        resolutionLoss: grainV2.resolutionLoss,
         seed: context?.grainSeed ?? Math.random(),
       }),
     );

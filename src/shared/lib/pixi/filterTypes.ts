@@ -8,6 +8,18 @@ export type PixiFilterValues = {
     intensity: number;
     grainSize: number;
   };
+  grainV2: {
+    enabled: boolean;
+    amount: number;
+    size: number;
+    chroma: number;
+    shadows: number;
+    midtones: number;
+    highlights: number;
+    structure: number;
+    positive: number;
+    resolutionLoss: number;
+  };
   lut: {
     enabled: boolean;
     intensity: number;
@@ -118,6 +130,18 @@ export function createEmptyPixiFilterValues(): PixiFilterValues {
       enabled: false,
       intensity: 0,
       grainSize: 1.25,
+    },
+    grainV2: {
+      enabled: false,
+      amount: 0.55,
+      size: 1.8,
+      chroma: 0.3,
+      shadows: 0.7,
+      midtones: 0.4,
+      highlights: 0.8,
+      structure: 0.55,
+      positive: 1.0,
+      resolutionLoss: 0.12,
     },
     lut: {
       enabled: false,
