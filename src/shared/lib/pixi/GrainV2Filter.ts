@@ -57,11 +57,13 @@ float snoise(vec2 v) {
     return 130.0 * dot(m, g);
 }
 
-float clusteredGrain(vec2 uv, float seed, float structure) {
+float clusteredGrain(vec2 px, float seed, float structure) {
     vec2 sv = vec2(seed, seed * 1.7 + 0.3);
-    float n1 = snoise(uv + sv) * 0.5 + 0.5;
-    float n2 = snoise(uv * 2.17 + sv + vec2(37.1, 59.3)) * 0.5 + 0.5;
-    float n3 = snoise(uv * 5.13 + sv + vec2(71.7, 113.1)) * 0.5 + 0.5;
+    mat2 r1 = mat2( 0.80, -0.60,  0.60,  0.80);
+    mat2 r2 = mat2( 0.36, -0.93,  0.93,  0.36);
+    float n1 = snoise(px + sv) * 0.5 + 0.5;
+    float n2 = snoise(r1 * px * 2.17 + sv + vec2(37.1, 59.3)) * 0.5 + 0.5;
+    float n3 = snoise(r2 * px * 5.13 + sv + vec2(71.7, 113.1)) * 0.5 + 0.5;
     float g = n1 * 0.55 + n2 * 0.30 + n3 * 0.15;
     float lo = mix(0.40, 0.30, structure);
     float hi = mix(0.60, 0.70, structure);
@@ -78,23 +80,30 @@ float bellMid(float x) {
     return exp(-d * d * 2.5);
 }
 
-vec3 softenedColor(vec2 uv, float radiusPx) {
+vec4 softenedColor(vec2 uv, float radiusPx) {
     vec2 px = vec2(radiusPx) / uInputSize.xy;
-    vec3 c  = texture(uTexture, uv).rgb * 0.40;
-    c += texture(uTexture, clamp(uv + vec2( px.x, 0.0), uInputClamp.xy, uInputClamp.zw)).rgb * 0.15;
-    c += texture(uTexture, clamp(uv + vec2(-px.x, 0.0), uInputClamp.xy, uInputClamp.zw)).rgb * 0.15;
-    c += texture(uTexture, clamp(uv + vec2(0.0,  px.y), uInputClamp.xy, uInputClamp.zw)).rgb * 0.15;
-    c += texture(uTexture, clamp(uv + vec2(0.0, -px.y), uInputClamp.xy, uInputClamp.zw)).rgb * 0.15;
+    vec4 c  = texture(uTexture, uv) * 0.40;
+    c += texture(uTexture, clamp(uv + vec2( px.x, 0.0), uInputClamp.xy, uInputClamp.zw)) * 0.15;
+    c += texture(uTexture, clamp(uv + vec2(-px.x, 0.0), uInputClamp.xy, uInputClamp.zw)) * 0.15;
+    c += texture(uTexture, clamp(uv + vec2(0.0,  px.y), uInputClamp.xy, uInputClamp.zw)) * 0.15;
+    c += texture(uTexture, clamp(uv + vec2(0.0, -px.y), uInputClamp.xy, uInputClamp.zw)) * 0.15;
+    c += texture(uTexture, clamp(uv + vec2( px.x,  px.y), uInputClamp.xy, uInputClamp.zw)) * 0.075;
+    c += texture(uTexture, clamp(uv + vec2(-px.x,  px.y), uInputClamp.xy, uInputClamp.zw)) * 0.075;
+    c += texture(uTexture, clamp(uv + vec2( px.x, -px.y), uInputClamp.xy, uInputClamp.zw)) * 0.075;
+    c += texture(uTexture, clamp(uv + vec2(-px.x, -px.y), uInputClamp.xy, uInputClamp.zw)) * 0.075;
     return c;
 }
 
 void main(void) {
     vec2 uv = vTextureCoord;
 
-    // 1. Film resolution loss
-    vec3 sharp = texture(uTexture, uv).rgb;
-    vec3 soft  = softenedColor(uv, uResolutionLoss * 4.0 + 0.3);
-    vec3 color = mix(sharp, soft, clamp(uResolutionLoss, 0.0, 1.0));
+    vec4 src = texture(uTexture, uv);
+    float a = src.a;
+
+    vec3 sharp = a > 0.0 ? src.rgb / a : vec3(0.0);
+    vec4 softPma = softenedColor(uv, uResolutionLoss * 20.0 + 0.5);
+    vec3 soft  = softPma.a > 0.0 ? softPma.rgb / softPma.a : vec3(0.0);
+    vec3 color = mix(sharp, soft, smoothstep(0.0, 0.4, uResolutionLoss));
     float L = luma(color);
 
     // 2. Tonal masks (bell curves)
@@ -104,7 +113,8 @@ void main(void) {
     float tonalWeight = maskS * uShadows + maskM * uMidtones + maskH * uHighlights;
 
     // 3. Physical-pixel coordinates, size-independent of canvas
-    vec2 px = uv * uInputSize.xy / max(uSize, 0.0001);
+    float effectiveSize = max(uSize, 1.0);
+    vec2 px = floor(uv * uInputSize.xy / effectiveSize);
     float seed = uSeed;
 
     // 4. Monochrome clustered grain
@@ -135,7 +145,7 @@ void main(void) {
     vec3 add  = grain * strength * density * 0.4;
     vec3 outc = color * mult + add;
 
-    finalColor = vec4(clamp(outc, 0.0, 1.0), 1.0);
+    finalColor = vec4(clamp(outc, 0.0, 1.0) * a, a);
 }
 `.trim();
 
@@ -207,11 +217,13 @@ fn snoise(v: vec2<f32>) -> f32 {
   return 130.0 * dot(m, g);
 }
 
-fn clusteredGrain(uv: vec2<f32>, seed: f32, structure: f32) -> f32 {
+fn clusteredGrain(px: vec2<f32>, seed: f32, structure: f32) -> f32 {
   let sv = vec2<f32>(seed, seed * 1.7 + 0.3);
-  let n1 = snoise(uv + sv) * 0.5 + 0.5;
-  let n2 = snoise(uv * 2.17 + sv + vec2<f32>(37.1, 59.3)) * 0.5 + 0.5;
-  let n3 = snoise(uv * 5.13 + sv + vec2<f32>(71.7, 113.1)) * 0.5 + 0.5;
+  let r1 = mat2x2<f32>( 0.80, -0.60,  0.60,  0.80);
+  let r2 = mat2x2<f32>( 0.36, -0.93,  0.93,  0.36);
+  let n1 = snoise(px + sv) * 0.5 + 0.5;
+  let n2 = snoise(r1 * px * 2.17 + sv + vec2<f32>(37.1, 59.3)) * 0.5 + 0.5;
+  let n3 = snoise(r2 * px * 5.13 + sv + vec2<f32>(71.7, 113.1)) * 0.5 + 0.5;
   var g = n1 * 0.55 + n2 * 0.30 + n3 * 0.15;
   let lo = mix(0.40, 0.30, structure);
   let hi = mix(0.60, 0.70, structure);
@@ -228,13 +240,17 @@ fn bellMid(x: f32) -> f32 {
   return exp(-d * d * 2.5);
 }
 
-fn softenedColor(uv: vec2<f32>, radiusPx: f32) -> vec3<f32> {
+fn softenedColor(uv: vec2<f32>, radiusPx: f32) -> vec4<f32> {
   let px = vec2<f32>(radiusPx) / gfu.uInputSize.xy;
-  var c = textureSample(uTexture, uSampler, uv).rgb * 0.40;
-  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>( px.x, 0.0), gfu.uInputClamp.xy, gfu.uInputClamp.zw)).rgb * 0.15;
-  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>(-px.x, 0.0), gfu.uInputClamp.xy, gfu.uInputClamp.zw)).rgb * 0.15;
-  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>(0.0,  px.y), gfu.uInputClamp.xy, gfu.uInputClamp.zw)).rgb * 0.15;
-  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>(0.0, -px.y), gfu.uInputClamp.xy, gfu.uInputClamp.zw)).rgb * 0.15;
+  var c = textureSample(uTexture, uSampler, uv) * 0.40;
+  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>( px.x, 0.0), gfu.uInputClamp.xy, gfu.uInputClamp.zw)) * 0.15;
+  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>(-px.x, 0.0), gfu.uInputClamp.xy, gfu.uInputClamp.zw)) * 0.15;
+  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>(0.0,  px.y), gfu.uInputClamp.xy, gfu.uInputClamp.zw)) * 0.15;
+  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>(0.0, -px.y), gfu.uInputClamp.xy, gfu.uInputClamp.zw)) * 0.15;
+  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>( px.x,  px.y), gfu.uInputClamp.xy, gfu.uInputClamp.zw)) * 0.075;
+  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>(-px.x,  px.y), gfu.uInputClamp.xy, gfu.uInputClamp.zw)) * 0.075;
+  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>( px.x, -px.y), gfu.uInputClamp.xy, gfu.uInputClamp.zw)) * 0.075;
+  c += textureSample(uTexture, uSampler, clamp(uv + vec2<f32>(-px.x, -px.y), gfu.uInputClamp.xy, gfu.uInputClamp.zw)) * 0.075;
   return c;
 }
 
@@ -245,9 +261,13 @@ fn mainFragment(
 ) -> @location(0) vec4<f32> {
   let u = gu;
 
-  let sharp = textureSample(uTexture, uSampler, uv).rgb;
-  let soft = softenedColor(uv, u.uResolutionLoss * 4.0 + 0.3);
-  var color = mix(sharp, soft, clamp(u.uResolutionLoss, 0.0, 1.0));
+  let src = textureSample(uTexture, uSampler, uv);
+  let a = src.a;
+
+  let sharp = select(vec3<f32>(0.0), src.rgb / a, a > 0.0);
+  let softPma = softenedColor(uv, u.uResolutionLoss * 20.0 + 0.5);
+  let soft = select(vec3<f32>(0.0), softPma.rgb / softPma.a, softPma.a > 0.0);
+  var color = mix(sharp, soft, smoothstep(0.0, 0.4, u.uResolutionLoss));
   let L = luma(color);
 
   let maskS = pow(1.0 - L, 2.0);
@@ -255,7 +275,8 @@ fn mainFragment(
   let maskH = pow(L, 2.0);
   let tonalWeight = maskS * u.uShadows + maskM * u.uMidtones + maskH * u.uHighlights;
 
-  let px = uv * gfu.uInputSize.xy / max(u.uSize, 0.0001);
+  let effectiveSize = max(u.uSize, 1.0);
+  let px = floor(uv * gfu.uInputSize.xy / effectiveSize);
   let seed = u.uSeed;
 
   let gMono = clusteredGrain(px, seed, u.uStructure);
@@ -280,7 +301,7 @@ fn mainFragment(
   let add = grain * strength * density * 0.4;
   let outc = color * mult + add;
 
-  return vec4<f32>(clamp(outc, vec3<f32>(0.0), vec3<f32>(1.0)), 1.0);
+  return vec4<f32>(clamp(outc, vec3<f32>(0.0), vec3<f32>(1.0)) * a, a);
 }
 `.trim();
 
@@ -289,7 +310,7 @@ fn mainFragment(
 export type GrainV2Options = {
   /** Overall grain amount in [0, 1]. Default 0.55 */
   amount?: number;
-  /** Average grain granule size in pixels [0.5, 4]. Default 1.8 */
+  /** Average grain granule size in pixels [1.0, 4]. Min 1.5px — Nyquist limit. Default 1.8 */
   size?: number;
   /** Chroma variation in [0, 1]. 0 = monochrome, 1 = full per-channel. Default 0.30 */
   chroma?: number;
@@ -344,6 +365,7 @@ export class GrainV2Filter extends Filter {
     super({
       gpuProgram,
       glProgram,
+      clipToViewport: false,
       resources: {
         grainV2Uniforms: {
           uAmount: { value: opts.amount, type: "f32" },
@@ -429,6 +451,6 @@ export class GrainV2Filter extends Filter {
   }
 
   setNormalizedSize(sizeAt1920px: number, rendererWidth: number) {
-    this._uniforms.uSize = sizeAt1920px * (rendererWidth / 1920);
+    this._uniforms.uSize = Math.max(1.0, sizeAt1920px * (rendererWidth / 1920));
   }
 }
