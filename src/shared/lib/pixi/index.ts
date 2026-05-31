@@ -32,3 +32,6 @@ export type { LutFilterOptions } from "./LutFilter";
 
 export { SpinBlurFilter } from "./SpinBlurFilter";
 export type { SpinBlurOptions } from "./SpinBlurFilter";
+
+export { CrtFilter } from "./CrtFilter";
+export type { CrtOptions } from "./CrtFilter";

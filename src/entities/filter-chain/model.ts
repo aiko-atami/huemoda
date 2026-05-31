@@ -20,6 +20,7 @@ const FILTER_IDS = [
   "chromaticAberration",
   "lensFlare",
   "spinBlur",
+  "crt",
 ] as const;
 
 export type FilterId = (typeof FILTER_IDS)[number];
@@ -721,6 +722,85 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
       },
     ],
   },
+  {
+    id: "crt",
+    title: "CRT",
+    description: "Retro TV cathode-ray tube post-processing.",
+    parameters: [
+      {
+        id: "aberration",
+        label: "Aberration",
+        type: "range",
+        min: 0,
+        max: 2,
+        step: 0.01,
+        defaultValue: 0.7,
+      },
+      {
+        id: "noise",
+        label: "Noise",
+        type: "range",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        defaultValue: 0.7,
+      },
+      {
+        id: "vignette",
+        label: "Vignette",
+        type: "range",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        defaultValue: 0.7,
+      },
+      {
+        id: "rounded",
+        label: "Rounded",
+        type: "range",
+        min: 0,
+        max: 2,
+        step: 0.01,
+        defaultValue: 0.7,
+      },
+      {
+        id: "pixelate",
+        label: "Pixelate",
+        type: "range",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        defaultValue: 0.7,
+      },
+      {
+        id: "mask",
+        label: "RGB Mask",
+        type: "range",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        defaultValue: 0.7,
+      },
+      {
+        id: "bloom",
+        label: "Bloom",
+        type: "range",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        defaultValue: 0.7,
+      },
+      {
+        id: "distortion",
+        label: "Distortion",
+        type: "range",
+        min: 0,
+        max: 2,
+        step: 0.01,
+        defaultValue: 0.7,
+      },
+    ],
+  },
 ];
 
 export const filterAdded = createEvent<FilterId>();
@@ -1005,6 +1085,18 @@ export function toPixiFilterValues(filterChain: FilterChainState): PixiFilterVal
       positionX: getNumericParameter(filterChain.spinBlur, "positionX") / 100,
       positionY: getNumericParameter(filterChain.spinBlur, "positionY") / 100,
       size: getNumericParameter(filterChain.spinBlur, "size") / 100,
+    },
+    crt: {
+      enabled: filterChain.crt.enabled,
+      aberration: getNumericParameter(filterChain.crt, "aberration"),
+      noise: getNumericParameter(filterChain.crt, "noise"),
+      vignette: getNumericParameter(filterChain.crt, "vignette"),
+      rounded: getNumericParameter(filterChain.crt, "rounded"),
+      pixelate: getNumericParameter(filterChain.crt, "pixelate"),
+      mask: getNumericParameter(filterChain.crt, "mask"),
+      bloom: getNumericParameter(filterChain.crt, "bloom"),
+      distortion: getNumericParameter(filterChain.crt, "distortion"),
+      frame: 0,
     },
   };
 }

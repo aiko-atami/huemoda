@@ -112,6 +112,18 @@ export type PixiFilterValues = {
     positionY: number;
     size: number;
   };
+  crt: {
+    enabled: boolean;
+    aberration: number;
+    noise: number;
+    vignette: number;
+    rounded: number;
+    pixelate: number;
+    mask: number;
+    bloom: number;
+    distortion: number;
+    frame: number;
+  };
 };
 
 export function createEmptyPixiFilterValues(): PixiFilterValues {
@@ -228,6 +240,18 @@ export function createEmptyPixiFilterValues(): PixiFilterValues {
       positionX: 0.5,
       positionY: 0.5,
       size: 0.5,
+    },
+    crt: {
+      enabled: false,
+      aberration: 0.7,
+      noise: 0.7,
+      vignette: 0.7,
+      rounded: 0.7,
+      pixelate: 0.7,
+      mask: 0.7,
+      bloom: 0.7,
+      distortion: 0.7,
+      frame: 0,
     },
   };
 }

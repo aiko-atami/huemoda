@@ -1,5 +1,6 @@
 import type { Filter, Texture } from "pixi.js";
 import { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
+import { CrtFilter } from "./CrtFilter";
 import { GrainFilter } from "./GrainFilter";
 import { GrainV2Filter } from "./GrainV2Filter";
 import { LensFlareFilter } from "./LensFlareFilter";
@@ -35,6 +36,7 @@ export function createPixiFilters(
     advancedBloom,
     blur,
     chromaticAberration,
+    crt,
     dot,
     glitch,
     glow,
@@ -242,6 +244,22 @@ export function createPixiFilters(
         positionX: context ? context.width * spinBlur.positionX : 0,
         positionY: context ? context.height * spinBlur.positionY : 0,
         size: spinBlur.size,
+      }),
+    );
+  }
+
+  if (crt.enabled) {
+    filters.push(
+      new CrtFilter({
+        aberration: crt.aberration,
+        noise: crt.noise,
+        vignette: crt.vignette,
+        rounded: crt.rounded,
+        pixelate: crt.pixelate,
+        mask: crt.mask,
+        bloom: crt.bloom,
+        distortion: crt.distortion,
+        frame: crt.frame,
       }),
     );
   }
