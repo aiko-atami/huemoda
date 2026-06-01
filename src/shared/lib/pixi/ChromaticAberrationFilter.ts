@@ -3,7 +3,7 @@ import { Filter, GlProgram, GpuProgram } from "pixi.js";
 import { defaultGlVertex, defaultWgslVertex } from "./shaderUtils";
 
 // ─── GLSL fragment ───────────────────────────────────────────────────────────
-const glFragment = `
+const glFragment = `#version 300 es
 precision highp float;
 in vec2 vTextureCoord;
 out vec4 finalColor;

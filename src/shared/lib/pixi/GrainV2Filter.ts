@@ -7,7 +7,7 @@ import { defaultGlVertex, defaultWgslVertex } from "./shaderUtils";
 // Dehancer-style grain v3: projection model, multi-layer emulsion,
 // tonal floor, residual halides, positive-process grain, grain shape.
 //
-const glFragment = `
+const glFragment = `#version 300 es
 precision highp float;
 in vec2 vTextureCoord;
 out vec4 finalColor;

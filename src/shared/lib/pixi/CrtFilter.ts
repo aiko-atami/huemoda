@@ -27,7 +27,7 @@ import { defaultGlVertex, defaultWgslVertex } from "./shaderUtils";
 //   8. Bloom
 //   9. Distortion edge mask
 //
-const glFragment = `
+const glFragment = `#version 300 es
 precision highp float;
 in vec2 vTextureCoord;
 out vec4 finalColor;

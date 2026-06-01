@@ -18,7 +18,7 @@ import { defaultGlVertex, defaultWgslVertex } from "./shaderUtils";
 // chromatic dispersion on every layer.  uHue rotates the total flare color via
 // Rodrigues rotation around the achromatic (1,1,1)/√3 axis.
 //
-const glFragment = `
+const glFragment = `#version 300 es
 precision highp float;
 in vec2 vTextureCoord;
 out vec4 finalColor;

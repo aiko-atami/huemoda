@@ -18,7 +18,7 @@ import { defaultGlVertex, defaultWgslVertex } from "./shaderUtils";
 //    6. Blend blurred ↔ original using: intensity × falloff, where falloff
 //       fades smoothly to zero at the `size` radius boundary (UV-space).
 //
-const glFragment = `
+const glFragment = `#version 300 es
 precision highp float;
 in vec2 vTextureCoord;
 out vec4 finalColor;

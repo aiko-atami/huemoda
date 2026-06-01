@@ -142,6 +142,20 @@ fn mainFragment(
 
 ## Common Pitfalls
 
+### 0. Always target WebGL2 (GLSL ES 3.00), not WebGL1 (GLSL ES 1.00)
+
+WebGL 1.0 / GLSL ES 1.00 is a legacy standard (OpenGL ES 2.0, 2007). It lacks
+array constructors, dynamic loops, and modern GLSL features. **All GLSL
+shaders must target GLSL ES 3.00** (WebGL 2.0) or WGSL (WebGPU). The
+renderer is configured with `preference: "webgl2"` to ensure WebGL2 context.
+
+This means you can safely use:
+- Array constructors: `const vec2 POISSON[16] = vec2[16](...)`
+- `for` loops with constant iteration counts
+- `texelFetch`, integer operations, etc.
+
+Never write shaders that limit themselves to GLSL ES 1.00 compatibility.
+
 ### 1. Never add `uResolution` — use `uInputSize.xy`
 
 External shader code often declares its own `uResolution` uniform for pixel

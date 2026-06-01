@@ -2,7 +2,7 @@ import { Filter, GlProgram, GpuProgram, Texture } from "pixi.js";
 import { PROJECT_LUT_SIZE, PROJECT_LUT_TILE_COUNT } from "./lutLayout";
 import { defaultGlVertex, defaultWgslVertex } from "./shaderUtils";
 
-const glFragment = `
+const glFragment = `#version 300 es
 precision highp float;
 in vec2 vTextureCoord;
 out vec4 finalColor;

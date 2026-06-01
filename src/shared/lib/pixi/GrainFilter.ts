@@ -18,7 +18,7 @@ import { defaultGlVertex, defaultWgslVertex } from "./shaderUtils";
 //     towards pure black / pure white, matching how silver-halide film grain
 //     responds to exposure.
 //
-const glFragment = `
+const glFragment = `#version 300 es
 precision highp float;
 in vec2 vTextureCoord;
 out vec4 finalColor;

@@ -208,7 +208,7 @@ export class PixiPhotoRenderer {
       antialias: true,
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
-      preference: "webgl",
+      preference: ["webgl", "webgpu"],
       powerPreference: "high-performance",
     });
 
