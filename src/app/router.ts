@@ -1,23 +1,27 @@
 import { createRouter } from "@effector/router";
-import { createRouteView, createRoutesView } from "@effector/router-react";
+import { createLazyRouteView, createRoutesView } from "@effector/router-react";
 import { routes } from "../shared/routing";
-import { EditorPage } from "../pages/editor";
-import { LutConverterPage } from "../pages/lut-converter";
+import { RouteLoading } from "../shared/ui";
+import { NotFoundPage } from "../pages/not-found";
 
 export const router = createRouter({
   routes: [routes.editor, routes.lutConverter],
 });
 
-const EditorView = createRouteView({
+const EditorView = createLazyRouteView({
   route: routes.editor,
-  view: EditorPage,
+  view: () => import("../pages/editor").then((module) => ({ default: module.EditorPage })),
+  fallback: RouteLoading,
 });
 
-const LutConverterView = createRouteView({
+const LutConverterView = createLazyRouteView({
   route: routes.lutConverter,
-  view: LutConverterPage,
+  view: () =>
+    import("../pages/lut-converter").then((module) => ({ default: module.LutConverterPage })),
+  fallback: RouteLoading,
 });
 
 export const AppRoutes = createRoutesView({
   routes: [EditorView, LutConverterView],
+  otherwise: NotFoundPage,
 });
