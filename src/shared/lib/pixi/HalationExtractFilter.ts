@@ -76,7 +76,7 @@ struct HalationExtractUniforms {
 @group(0) @binding(0) var<uniform> gfu: GlobalFilterUniforms;
 @group(0) @binding(1) var uTexture: texture_2d<f32>;
 @group(0) @binding(2) var uSampler: sampler;
-@group(1) @binding(0) var<uniform> hu: HalationExtractUniforms;
+@group(1) @binding(0) var<uniform> halationExtractUniforms: HalationExtractUniforms;
 
 fn luma(c: vec3<f32>) -> f32 {
   return dot(c, vec3<f32>(0.2126, 0.7152, 0.0722));
@@ -94,9 +94,9 @@ fn mainFragment(
   }
   let L = luma(color);
 
-  let sourceMask = smoothstep(hu.uSourceLimiter, hu.uSourceLimiter + 0.15, L);
+  let sourceMask = smoothstep(halationExtractUniforms.uSourceLimiter, halationExtractUniforms.uSourceLimiter + 0.15, L);
 
-  let radius = hu.uSmoothness * 4.0;
+  let radius = halationExtractUniforms.uSmoothness * 4.0;
   let px = vec2<f32>(radius) / gfu.uInputSize.xy;
 
   let s0 = textureSample(uTexture, uSampler, clamp(uv + vec2<f32>( px.x, 0.0), gfu.uInputClamp.xy, gfu.uInputClamp.zw));
@@ -113,16 +113,16 @@ fn mainFragment(
   if (s2.a > 0.0) { c2 = s2.rgb / s2.a; }
   if (s3.a > 0.0) { c3 = s3.rgb / s3.a; }
 
-  let m0 = smoothstep(hu.uSourceLimiter, hu.uSourceLimiter + 0.15, luma(c0));
-  let m1 = smoothstep(hu.uSourceLimiter, hu.uSourceLimiter + 0.15, luma(c1));
-  let m2 = smoothstep(hu.uSourceLimiter, hu.uSourceLimiter + 0.15, luma(c2));
-  let m3 = smoothstep(hu.uSourceLimiter, hu.uSourceLimiter + 0.15, luma(c3));
+  let m0 = smoothstep(halationExtractUniforms.uSourceLimiter, halationExtractUniforms.uSourceLimiter + 0.15, luma(c0));
+  let m1 = smoothstep(halationExtractUniforms.uSourceLimiter, halationExtractUniforms.uSourceLimiter + 0.15, luma(c1));
+  let m2 = smoothstep(halationExtractUniforms.uSourceLimiter, halationExtractUniforms.uSourceLimiter + 0.15, luma(c2));
+  let m3 = smoothstep(halationExtractUniforms.uSourceLimiter, halationExtractUniforms.uSourceLimiter + 0.15, luma(c3));
 
   let blurred = 0.40 * sourceMask + 0.15 * (m0 + m1 + m2 + m3);
 
   let baseRed = vec3<f32>(1.0, 0.1, 0.05);
   let orange  = vec3<f32>(1.0, 0.5, 0.1);
-  let halationColor = mix(baseRed, orange, hu.uHue * L);
+  let halationColor = mix(baseRed, orange, halationExtractUniforms.uHue * L);
 
   return vec4<f32>(halationColor * blurred, blurred);
 }

@@ -172,7 +172,7 @@ struct LensFlareUniforms {
 @group(0) @binding(0) var<uniform> gfu: GlobalFilterUniforms;
 @group(0) @binding(1) var uTexture: texture_2d<f32>;
 @group(0) @binding(2) var uSampler: sampler;
-@group(1) @binding(0) var<uniform> lfu: LensFlareUniforms;
+@group(1) @binding(0) var<uniform> lensFlareUniforms: LensFlareUniforms;
 
 const PI: f32 = 3.14159265358979;
 
@@ -196,13 +196,13 @@ fn mainFragment(
   var color = textureSample(uTexture, uSampler, uv);
 
   let aspect   = gfu.uInputSize.x / gfu.uInputSize.y;
-  let flarePos = vec2<f32>(lfu.uPositionX, lfu.uPositionY);
+  let flarePos = vec2<f32>(lensFlareUniforms.uPositionX, lensFlareUniforms.uPositionY);
   let dirAR    = vec2<f32>((uv.x - flarePos.x) * aspect, uv.y - flarePos.y);
   let dist     = length(dirAR);
-  let spread   = lfu.uPower;
+  let spread   = lensFlareUniforms.uPower;
 
   // Fringe: per-channel spread offset (R softer/wider, B harder/tighter).
-  let fo      = lfu.uFringe * 0.25;
+  let fo      = lensFlareUniforms.uFringe * 0.25;
   let spreadR = spread * (1.0 - fo);
   let spreadB = spread * (1.0 + fo);
 
@@ -216,19 +216,19 @@ fn mainFragment(
   let core     = pow(max(0.0, 1.0 - dist * spread * 4.0),  8.0);
   // Warm white for wide glow, pure white for tight core.
   let warmWhite = mix(vec3<f32>(1.0, 0.92, 0.75), vec3<f32>(1.0, 1.0, 1.0), core);
-  flare += vec3<f32>(glowR, glowG, glowB) * warmWhite * (0.8 + core * 1.2) * lfu.uIntensity;
+  flare += vec3<f32>(glowR, glowG, glowB) * warmWhite * (0.8 + core * 1.2) * lensFlareUniforms.uIntensity;
 
   // ── 2. Streaks ─────────────────────────────────────────────────────────────
   // Blades are symmetric (each blade extends both ways), so N even blades
   // are produced by cos(N/2 * theta).  uStreaks is always even (step 2).
   let axisAngle = atan2(0.5 - flarePos.y, (0.5 - flarePos.x) * aspect);
-  let rotRad = lfu.uRotation * PI / 180.0;
+  let rotRad = lensFlareUniforms.uRotation * PI / 180.0;
   let angle  = atan2(dirAR.y, dirAR.x);
-  let blade  = pow(abs(cos(lfu.uStreaks * 0.5 * (angle - axisAngle - rotRad))), 30.0);
+  let blade  = pow(abs(cos(lensFlareUniforms.uStreaks * 0.5 * (angle - axisAngle - rotRad))), 30.0);
   let fadeR  = 1.0 / (1.0 + dist * spreadR * 2.5);
   let fadeG  = 1.0 / (1.0 + dist * spread  * 2.5);
   let fadeB  = 1.0 / (1.0 + dist * spreadB * 2.5);
-  flare += vec3<f32>(fadeR, fadeG * 0.97, fadeB * 0.82) * blade * lfu.uIntensity * 0.45;
+  flare += vec3<f32>(fadeR, fadeG * 0.97, fadeB * 0.82) * blade * lensFlareUniforms.uIntensity * 0.45;
 
   // ── Flare axis ─────────────────────────────────────────────────────────────
   // t=1 lands at centre, t=2 at the mirror point.
@@ -236,20 +236,20 @@ fn mainFragment(
 
   // ── 3. Rings ───────────────────────────────────────────────────────────────
   // Two concentric halos centred on the glow (flare position).
-  if (lfu.uRings > 0.0) {
+  if (lensFlareUniforms.uRings > 0.0) {
     let rr = array<f32, 2>(0.070, 0.140);
 
     for (var i: i32 = 0; i < 2; i++) {
-      let fw = rr[i] * lfu.uFringe * 0.5;
+      let fw = rr[i] * lensFlareUniforms.uFringe * 0.5;
       let rR = ring(dist, rr[i] + fw, 0.004);
       let rG = ring(dist, rr[i],       0.004);
       let rB = ring(dist, rr[i] - fw,  0.004);
-      flare += vec3<f32>(0.75 * rR, 0.90 * rG, 1.0 * rB) * lfu.uRings * lfu.uIntensity;
+      flare += vec3<f32>(0.75 * rR, 0.90 * rG, 1.0 * rB) * lensFlareUniforms.uRings * lensFlareUniforms.uIntensity;
     }
   }
 
   // ── 4. Artifacts ───────────────────────────────────────────────────────────
-  if (lfu.uArtifacts > 0.0) {
+  if (lensFlareUniforms.uArtifacts > 0.0) {
     let at = array<f32, 5>(0.60, 0.88, 1.20, 1.50, 1.85);
     let ar = array<f32, 5>(0.022, 0.038, 0.018, 0.030, 0.014);
     let ab = array<f32, 5>(0.50, 0.70, 0.40, 0.55, 0.30);
@@ -258,18 +258,18 @@ fn mainFragment(
       let artCenter = flarePos + axis * at[i];
       let toArt = vec2<f32>((uv.x - artCenter.x) * aspect, uv.y - artCenter.y);
       let d = length(toArt);
-      let arR = ar[i] * (1.0 + lfu.uFringe * 0.3);
-      let arB = ar[i] * (1.0 - lfu.uFringe * 0.3);
+      let arR = ar[i] * (1.0 + lensFlareUniforms.uFringe * 0.3);
+      let arB = ar[i] * (1.0 - lensFlareUniforms.uFringe * 0.3);
       let bR = smoothstep(arR,    arR * 0.1,    d);
       let bG = smoothstep(ar[i],  ar[i] * 0.1,  d);
       let bB = smoothstep(arB,    arB * 0.1,    d);
-      flare += vec3<f32>(bR, bG * 0.70, bB * 0.28) * ab[i] * lfu.uArtifacts * lfu.uIntensity;
+      flare += vec3<f32>(bR, bG * 0.70, bB * 0.28) * ab[i] * lensFlareUniforms.uArtifacts * lensFlareUniforms.uIntensity;
     }
   }
 
   // ── Hue rotation applied to the total flare contribution ───────────────────
-  if (lfu.uHue > 0.001) {
-    flare = hueShift(flare, lfu.uHue * PI / 180.0);
+  if (lensFlareUniforms.uHue > 0.001) {
+    flare = hueShift(flare, lensFlareUniforms.uHue * PI / 180.0);
   }
 
   return vec4<f32>(color.rgb + flare, color.a);

@@ -79,7 +79,7 @@ struct HalationCompositeUniforms {
 @group(0) @binding(0) var<uniform> gfu: GlobalFilterUniforms;
 @group(0) @binding(1) var uTexture: texture_2d<f32>;
 @group(0) @binding(2) var uSampler: sampler;
-@group(1) @binding(0) var<uniform> hu: HalationCompositeUniforms;
+@group(1) @binding(0) var<uniform> halationCompositeUniforms: HalationCompositeUniforms;
 @group(1) @binding(1) var uHalationTexture: texture_2d<f32>;
 @group(1) @binding(2) var uHalationSampler: sampler;
 
@@ -100,8 +100,8 @@ fn mainFragment(
     original = origPma.rgb / origPma.a;
   }
   let L = luma(original);
-  var bgMask = (1.0 - L) * hu.uBackgroundGain;
-  let radiusPx = hu.uGlobalDiffusion * 20.0;
+  var bgMask = (1.0 - L) * halationCompositeUniforms.uBackgroundGain;
+  let radiusPx = halationCompositeUniforms.uGlobalDiffusion * 20.0;
   let radiusUV = vec2<f32>(radiusPx) / gfu.uInputSize.xy;
   let poisson = array<vec2<f32>, 16>(
     vec2<f32>(-0.94201624, -0.39906216), vec2<f32>(0.94558609, -0.76890725),
@@ -121,9 +121,9 @@ fn mainFragment(
   }
   globalGlow = globalGlow / 16.0;
   let blueFactor = clamp(original.b / max(L, 0.05), 0.0, 4.0);
-  bgMask = clamp(bgMask * (1.0 + hu.uBlueComp * blueFactor), 0.0, 1.0);
-  let combined = (halation + globalGlow) * hu.uAmplify * bgMask;
-  let result = clamp(original + combined * hu.uImpact, vec3<f32>(0.0), vec3<f32>(1.0));
+  bgMask = clamp(bgMask * (1.0 + halationCompositeUniforms.uBlueComp * blueFactor), 0.0, 1.0);
+  let combined = (halation + globalGlow) * halationCompositeUniforms.uAmplify * bgMask;
+  let result = clamp(original + combined * halationCompositeUniforms.uImpact, vec3<f32>(0.0), vec3<f32>(1.0));
   return vec4<f32>(result * origPma.a, origPma.a);
 }
 `.trim();

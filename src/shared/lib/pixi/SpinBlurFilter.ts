@@ -114,7 +114,7 @@ struct SpinBlurUniforms {
 @group(0) @binding(0) var<uniform> gfu: GlobalFilterUniforms;
 @group(0) @binding(1) var uTexture: texture_2d<f32>;
 @group(0) @binding(2) var uSampler: sampler;
-@group(1) @binding(0) var<uniform> sbu: SpinBlurUniforms;
+@group(1) @binding(0) var<uniform> spinBlurUniforms: SpinBlurUniforms;
 
 const PI: f32 = 3.14159265358979;
 
@@ -132,7 +132,7 @@ fn mainFragment(
 
   // uPositionX/Y are pixel coordinates; divide by input texture dimensions
   // to land in the same UV space as the vTextureCoord interpolant.
-  let centerUV = vec2<f32>(sbu.uPositionX / gfu.uInputSize.x, sbu.uPositionY / gfu.uInputSize.y);
+  let centerUV = vec2<f32>(spinBlurUniforms.uPositionX / gfu.uInputSize.x, spinBlurUniforms.uPositionY / gfu.uInputSize.y);
 
   let aspect = gfu.uInputSize.x / gfu.uInputSize.y;
 
@@ -144,14 +144,14 @@ fn mainFragment(
   // UV-space distance for the size falloff.
   // Blur grows from the edges inward: uSize=0 → no blur, uSize=1 → full image.
   let uvDist      = length(uv - centerUV);
-  let innerRadius = 1.0 - sbu.uSize;
+  let innerRadius = 1.0 - spinBlurUniforms.uSize;
   let falloff     = smoothstep(innerRadius, innerRadius + 0.08, uvDist);
 
-  let halfBlur = sbu.uBlurAmount * PI / 360.0;
+  let halfBlur = spinBlurUniforms.uBlurAmount * PI / 360.0;
 
   // Adaptive sample count: enough steps so arc-step ≤ 0.5 px at this radius.
   // arcLen (UV) = dist * blurAmount_rad; pixelUV = 1 / min(w,h).
-  let arcLen   = dist * sbu.uBlurAmount * PI / 180.0;
+  let arcLen   = dist * spinBlurUniforms.uBlurAmount * PI / 180.0;
   let pixelUV  = 1.0 / min(gfu.uInputSize.x, gfu.uInputSize.y);
   let samples  = clamp(i32(arcLen / (0.5 * pixelUV)) + 1, 8, 128);
 
@@ -171,7 +171,7 @@ fn mainFragment(
   }
   blurred /= f32(samples);
 
-  return mix(original, blurred, sbu.uIntensity * falloff);
+  return mix(original, blurred, spinBlurUniforms.uIntensity * falloff);
 }
 `.trim();
 

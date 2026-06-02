@@ -97,6 +97,28 @@ function makeStubTexture() {
   };
 }
 
+function getGpuFragmentSource(filter: unknown) {
+  return (
+    filter as {
+      filterOptions: {
+        gpuProgram: { fragment: { source: string } };
+      };
+    }
+  ).filterOptions.gpuProgram.fragment.source;
+}
+
+function expectUniformGroupBinding(filter: unknown, resourceName: string) {
+  expect(filter).toMatchObject({
+    resources: {
+      [resourceName]: { uniforms: expect.any(Object) },
+    },
+  });
+
+  expect(getGpuFragmentSource(filter)).toContain(
+    `@group(1) @binding(0) var<uniform> ${resourceName}:`,
+  );
+}
+
 describe("Pixi filter factory", () => {
   beforeAll(async () => {
     filterFactory = await import("./filterFactory");
@@ -150,18 +172,30 @@ describe("Pixi filter factory", () => {
       },
     });
 
-    const filterOptions = (
-      filters[0] as unknown as {
-        filterOptions: {
-          gpuProgram: { fragment: { source: string } };
-        };
-      }
-    ).filterOptions;
+    expectUniformGroupBinding(filters[0], "grainUniforms");
+    expect(getGpuFragmentSource(filters[0])).toContain("let u = grainUniforms;");
+  });
 
-    expect(filterOptions.gpuProgram.fragment.source).toContain(
-      "@group(1) @binding(0) var<uniform> grainUniforms: GrainUniforms;",
-    );
-    expect(filterOptions.gpuProgram.fragment.source).toContain("let u = grainUniforms;");
+  it("keeps WebGPU uniform binding names aligned for custom filters", () => {
+    const values = createEmptyPixiFilterValues();
+    values.chromaticAberration.enabled = true;
+    values.crt.enabled = true;
+    values.grain.enabled = true;
+    values.lensFlare.enabled = true;
+    values.spinBlur.enabled = true;
+
+    const filters = filterFactory.createPixiFilters(values, {
+      width: 1920,
+      height: 1080,
+      grainSeed: 0.42,
+    });
+
+    expect(filters).toHaveLength(5);
+    expectUniformGroupBinding(filters[0], "grainUniforms");
+    expectUniformGroupBinding(filters[1], "chromaticAberrationUniforms");
+    expectUniformGroupBinding(filters[2], "lensFlareUniforms");
+    expectUniformGroupBinding(filters[3], "spinBlurUniforms");
+    expectUniformGroupBinding(filters[4], "crtUniforms");
   });
 
   it("creates halation signal and composite filters from mapped values", () => {

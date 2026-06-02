@@ -219,7 +219,7 @@ struct GlobalFilterUniforms {
 @group(0) @binding(0) var<uniform> gfu: GlobalFilterUniforms;
 @group(0) @binding(1) var uTexture: texture_2d<f32>;
 @group(0) @binding(2) var uSampler: sampler;
-@group(1) @binding(0) var<uniform> crt: CrtUniforms;
+@group(1) @binding(0) var<uniform> crtUniforms: CrtUniforms;
 
 fn hash3(p_in: vec3<f32>) -> f32 {
   var p = fract(p_in * 0.1031);
@@ -285,15 +285,15 @@ fn mainFragment(
   var luv = (uv - cMin) / cSize;
 
   // 1. Barrel distortion
-  if (crt.uDistortion > 0.001) {
-    luv = barrelDistort(luv, crt.uDistortion);
+  if (crtUniforms.uDistortion > 0.001) {
+    luv = barrelDistort(luv, crtUniforms.uDistortion);
   }
 
   let sUv = cMin + luv * cSize;
   let F   = luv * imgRes;
 
   // 2. Chromatic aberration
-  let aberOff = (luv - 0.5) * crt.uAberration * length(luv - 0.5) * 0.05 * cSize;
+  let aberOff = (luv - 0.5) * crtUniforms.uAberration * length(luv - 0.5) * 0.05 * cSize;
   let aber = vec3<f32>(
     textureSample(uTexture, uSampler, clamp(sUv, cMin, cMax)).r,
     textureSample(uTexture, uSampler, clamp(sUv - aberOff, cMin, cMax)).g,
@@ -306,7 +306,7 @@ fn mainFragment(
   let blockUv = floor(luv * (imgRes / vec2<f32>(7.0, 4.0)));
   let hexOff = (blockUv.x % 2.0) * 2.0;
 
-  if (crt.uPixelate > 0.001) {
+  if (crtUniforms.uPixelate > 0.001) {
     var pBlock = blockUv;
     pBlock.y += floor((F.y % 4.0) / 2.0) * hexOff * 0.5;
 
@@ -317,36 +317,36 @@ fn mainFragment(
         blockColor += textureSample(uTexture, uSampler, clamp(cMin + sl * cSize, cMin, cMax));
       }
     }
-    color = mix(color, (blockColor / 28.0).rgb, crt.uPixelate);
+    color = mix(color, (blockColor / 28.0).rgb, crtUniforms.uPixelate);
   }
 
   // 4. RGB grain
-  let frame = floor(crt.uFrame);
+  let frame = floor(crtUniforms.uFrame);
   let rgbGrain = vec3<f32>(
     grainFn(vec3<f32>(F, frame)),
     grainFn(vec3<f32>(F, frame + 9.0)),
     grainFn(vec3<f32>(F, frame - 9.0))
   );
-  color = mix(color, mix(color * rgbGrain, color + (rgbGrain - 1.0), 0.5), crt.uNoise);
+  color = mix(color, mix(color * rgbGrain, color + (rgbGrain - 1.0), 0.5), crtUniforms.uNoise);
 
   // 5. Vignette
   let vigR = length((luv - 0.5) * vec2<f32>(1.0, imgRes.y / imgRes.x * 2.0));
-  color *= mix(1.0, 1.0 - clamp(smoothstep(0.25, 1.0, vigR), 0.0, 1.0), crt.uVignette);
+  color *= mix(1.0, 1.0 - clamp(smoothstep(0.25, 1.0, vigR), 0.0, 1.0), crtUniforms.uVignette);
 
   // 6. Rounded corners
-  let radius = crt.uRounded * ((imgRes.x + imgRes.y) * 0.5) * 0.06;
+  let radius = crtUniforms.uRounded * ((imgRes.x + imgRes.y) * 0.5) * 0.06;
   let cd = length(max(abs(F - imgRes * 0.5) - (imgRes * 0.5) + radius, vec2<f32>(0.0))) - radius;
   let cornerMask = 1.0 - smoothstep(0.0, 1.5, cd);
   color *= cornerMask;
 
   // 7. Sub-pixel RGB mask
-  if (crt.uMask > 0.001) {
+  if (crtUniforms.uMask > 0.001) {
     let maskIdx = i32((F.y + hexOff) % 4.0) * 7 + i32(F.x % 7.0);
-    color *= mix(vec3<f32>(1.0), getMask(maskIdx), crt.uMask);
+    color *= mix(vec3<f32>(1.0), getMask(maskIdx), crtUniforms.uMask);
   }
 
   // 8. Bloom
-  if (crt.uBloom > 0.001) {
+  if (crtUniforms.uBloom > 0.001) {
     var bloomSum = vec4<f32>(0.0);
     for (var bx: i32 = -3; bx <= 3; bx++) {
       for (var by: i32 = -3; by <= 3; by++) {
@@ -355,11 +355,11 @@ fn mainFragment(
           * textureSample(uTexture, uSampler, clamp(sUv + off, cMin, cMax));
       }
     }
-    color = mix(color, (bloomSum / 7.0).rgb, crt.uBloom);
+    color = mix(color, (bloomSum / 7.0).rgb, crtUniforms.uBloom);
   }
 
   // 9. Barrel distortion edge mask
-  if (crt.uDistortion > 0.001) {
+  if (crtUniforms.uDistortion > 0.001) {
     let v = min(min(luv.x, 1.0 - luv.x), min(luv.y, 1.0 - luv.y));
     let AA = 2.0 / min(imgRes.x, imgRes.y);
     color *= smoothstep(-AA, AA, v);
