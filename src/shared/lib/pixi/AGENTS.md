@@ -1,268 +1,110 @@
-# PixiJS Custom Filters — Workflow & Conventions
+# AGENTS.md instructions for /home/xs/aiko/huemoda
+
+<INSTRUCTIONS>
+- Use Conventional Commits.
+- JS/TS: Use `pnpx` by default.
+- Python: Use `uv`.
+- GH actions: Use `checkout@v6`, `cache@v5`, `jdx/mise-action@v4`
+- Use `mise` instead make for tasks
+- Use `mise` for tool managment
+
+--- project-doc ---
+
+# Project Instructions
+
+## Workflow
+
+- Prefer Vite+ commands through `vp` (`vp dev`, `vp build`, `vp check`, `vp test`) and keep `package.json` scripts aligned with them.
 
 ## Architecture
 
-All custom filters live in `src/shared/lib/pixi/`. Each filter is a single
-self-contained `.ts` file with inline GLSL and WGSL fragment shaders. No
-separate `.frag`/`.vert` files — every existing filter embeds shaders as
-template literals.
-
-## Files to Touch (in order)
-
-When adding a new filter, **all five** of these must be updated:
-
-| # | File | What to add |
-|---|------|-------------|
-| 1 | `src/shared/lib/pixi/<Name>Filter.ts` | Filter class + options type + both shaders |
-| 2 | `src/shared/lib/pixi/filterTypes.ts` | Entry in `PixiFilterValues` type + default in `createEmptyPixiFilterValues()` |
-| 3 | `src/shared/lib/pixi/filterFactory.ts` | Import class, add `if (xxx.enabled)` block in `createPixiFilters()` |
-| 4 | `src/shared/lib/pixi/index.ts` | `export { XxxFilter }` + `export type { XxxOptions }` |
-| 5 | `src/entities/filter-chain/model.ts` | Add to `FILTER_IDS`, add `FilterDefinition` with parameters, add to `toPixiFilterValues()` |
-
-## Filter Class Pattern
-
-Every filter follows this exact structure (copy from any existing file):
-
-```ts
-import { Filter, GlProgram, GpuProgram } from "pixi.js";
-import { defaultGlVertex, defaultWgslVertex } from "./shaderUtils";
-
-const glFragment = ` ... `.trim();
-const wgslFragment = ` ... `.trim();
-
-export type XxxOptions = { ... };
-
-export class XxxFilter extends Filter {
-  static readonly defaults: Required<XxxOptions> = { ... };
-  private readonly _uniforms: Record<string, number>;
-
-  constructor(options: XxxOptions = {}) {
-    const opts = { ...XxxFilter.defaults, ...options };
-
-    const gpuProgram = GpuProgram.from({
-      vertex: { source: defaultWgslVertex, entryPoint: "mainVertex" },
-      fragment: { source: wgslFragment, entryPoint: "mainFragment" },
-    });
-
-    const glProgram = GlProgram.from({
-      vertex: defaultGlVertex,
-      fragment: glFragment,
-      name: "xxx-filter",
-    });
-
-    super({
-      gpuProgram,
-      glProgram,
-      resources: {
-        xxxUniforms: { uField: { value: opts.field, type: "f32" }, ... },
-      },
-    });
-
-    this._uniforms = (
-      this.resources as Record<string, { uniforms: Record<string, number> }>
-    ).xxxUniforms.uniforms;
-  }
-
-  get field(): number { return this._uniforms.uField; }
-  set field(v: number) { this._uniforms.uField = v; }
-}
-```
-
-## Shader Conventions
-
-### Vertex shader
-
-**Never** write a custom vertex shader. Import `defaultGlVertex` /
-`defaultWgslVertex` from `./shaderUtils`. They provide `vTextureCoord` (GLSL)
-or `uv` (WGSL) and the standard pixi uniform bindings.
-
-### GlobalFilterUniforms
-
-The shared vertex exposes these — **use them, do not re-declare**:
-
-| Uniform | Type | Use for |
-|---------|------|---------|
-| `uInputSize` | `vec4<f32>` | `.xy` = texture dims in px. Use **instead of** a custom `uResolution` uniform. |
-| `uInputPixel` | `vec4<f32>` | `.xy` = 1/textureSize |
-| `uInputClamp` | `vec4<f32>` | `.xy` = min UV, `.zw` = max UV. Use for edge-clamping texture samples. |
-| `uOutputFrame` | `vec4<f32>` | Output viewport rect |
-| `uGlobalFrame` | `vec4<f32>` | Global frame |
-| `uOutputTexture` | `vec4<f32>` | Output texture dims |
-
-### GLSL fragment boilerplate
-
-```glsl
-precision highp float;
-in vec2 vTextureCoord;
-out vec4 finalColor;
-
-uniform sampler2D uTexture;
-uniform vec4 uInputSize;
-uniform vec4 uInputClamp;
-// ... custom uniforms ...
-
-void main(void) {
-    vec2 uv = vTextureCoord;
-    // ...
-    finalColor = vec4(result, 1.0);
-}
-```
-
-### WGSL fragment boilerplate
-
-```wgsl
-struct GlobalFilterUniforms {
-  uInputSize:vec4<f32>,
-  uInputPixel:vec4<f32>,
-  uInputClamp:vec4<f32>,
-  uOutputFrame:vec4<f32>,
-  uGlobalFrame:vec4<f32>,
-  uOutputTexture:vec4<f32>,
-};
-
-struct XxxUniforms {
-  uField: f32,
-  // ...
-};
-
-@group(0) @binding(0) var<uniform> gfu: GlobalFilterUniforms;
-@group(0) @binding(1) var uTexture: texture_2d<f32>;
-@group(0) @binding(2) var uSampler: sampler;
-@group(1) @binding(0) var<uniform> xu: XxxUniforms;
-
-@fragment
-fn mainFragment(
-  @builtin(position) position: vec4<f32>,
-  @location(0) uv: vec2<f32>
-) -> @location(0) vec4<f32> {
-  let u = xu;
-  // ...
-}
-```
-
-## Common Pitfalls
-
-### 0. Always target WebGL2 (GLSL ES 3.00), not WebGL1 (GLSL ES 1.00)
-
-WebGL 1.0 / GLSL ES 1.00 is a legacy standard (OpenGL ES 2.0, 2007). It lacks
-array constructors, dynamic loops, and modern GLSL features. **All GLSL
-shaders must target GLSL ES 3.00** (WebGL 2.0) or WGSL (WebGPU). The
-renderer is configured with `preference: "webgl2"` to ensure WebGL2 context.
-
-This means you can safely use:
-- Array constructors: `const vec2 POISSON[16] = vec2[16](...)`
-- `for` loops with constant iteration counts
-- `texelFetch`, integer operations, etc.
-
-Never write shaders that limit themselves to GLSL ES 1.00 compatibility.
-
-### 1. Never add `uResolution` — use `uInputSize.xy`
-
-External shader code often declares its own `uResolution` uniform for pixel
-dimensions. In this codebase, `uInputSize.xy` already provides texture
-dimensions in pixels via the shared vertex. Adding a duplicate uniform wastes
-a binding slot and must be manually kept in sync.
-
-**Before (wrong):**
-```glsl
-uniform vec2 uResolution;
-vec2 px = uv * uResolution / uSize;
-```
-
-**After (correct):**
-```glsl
-vec2 px = uv * uInputSize.xy / uSize;
-```
-
-### 2. GLSL 300 es is strict about vector/scalar ops
-
-GLSL 300 es does **not** allow implicit scalar-to-vector promotion in function
-arguments or binary ops where the other operand is a vector.
-
-**Wrong:** `clusteredGrain(px + 17.13, seed + 1.0, s)` — second arg is `float`,
-function expects `vec2`.
-
-**Fix:** `clusteredGrain(px + vec2(17.13, 0.0), vec2(seed, seed) + 1.0, s)`
-
-Or restructure the function to accept `float seed` and build the vec2 inside.
-
-### 3. Always clamp texture sample UVs with `uInputClamp`
-
-Sampling out-of-bounds UVs wraps or produces black. When a shader does spatial
-offsets (blur, aberration, resolution loss), clamp the coordinates:
-
-```glsl
-texture(uTexture, clamp(uv + offset, uInputClamp.xy, uInputClamp.zw))
-```
-
-WGSL equivalent:
-```wgsl
-textureSample(uTexture, uSampler, clamp(uv + offset, gfu.uInputClamp.xy, gfu.uInputClamp.zw))
-```
-
-### 4. No per-frame uniforms (no `uTime`, no ticker update)
-
-Filters in this project are created once by `filterFactory` and never updated
-per-frame. The architecture has no ticker loop for filter uniforms. If a
-shader needs variation, use a `uSeed` uniform set at construction time
-(via `Math.random()` from the factory context).
-
-### 5. No separate shader files
-
-Do not create `.frag` / `.vert` / `.glsl` files. All shaders are inline
-template literals in the TS class file. This is consistent with every existing
-filter and avoids Vite raw-import configuration.
-
-### 6. Map UI-friendly values in `toPixiFilterValues`, not in the shader
-
-The `FILTER_DEFINITIONS` in `model.ts` use UI-friendly parameters (select
-options, percentage ranges, degree angles). Map them to shader-compatible
-values in `toPixiFilterValues()`:
-
-- Select `"negative"` / `"positive"` → `positive: 0 | 1`
-- Percentage `0..100` → divide by 100 or 200
-- Degrees → radians or degrees (depends on shader)
-- Pixel coords normalised `0..100` → divide by 100
-
-### 7. `clipToViewport: false` for spatial filters
-
-If the filter samples neighbouring pixels (blur, aberration, resolution loss)
-and the image can be zoomed beyond the viewport, add `clipToViewport: false`
-in the `super()` call. Without it, UV `[0,1]` covers only the visible slice
-when zoomed in, breaking spatial offsets.
-
-### 8. Uniform struct field order must match TS declaration order
-
-WebGPU uniform buffers are laid out sequentially. The WGSL struct field order
-must exactly match the order of keys in the `resources` object passed to
-`super()`. Reordering will silently break uniform values.
-
-### 9. WGSL `textureSampleLevel` needs explicit LOD
-
-When sampling in a non-uniform control flow (loops, if/else), use
-`textureSampleLevel(uTexture, uSampler, uv, 0.0)` instead of `textureSample`.
-The latter requires uniform control flow and will cause validation errors
-inside loops.
-
-## Validation Checklist
-
-After creating a new filter, run:
-
-```bash
-pnpm lint        # BiomeJS lint + format
-npx tsc --noEmit # TypeScript type check
-pnpm test        # Vitest unit tests
-```
-
-Verify these manually:
-
-- [ ] Filter class has `static readonly defaults`
-- [ ] Both GLSL and WGSL fragment shaders are present
-- [ ] No custom vertex shader — using shared `defaultGlVertex`/`defaultWgslVertex`
-- [ ] No `uResolution` uniform — using `uInputSize.xy` instead
-- [ ] All texture samples with spatial offsets are UV-clamped via `uInputClamp`
-- [ ] No `uTime`/per-frame uniforms — using `uSeed` instead
-- [ ] `filterTypes.ts` has entry in both `PixiFilterValues` and `createEmptyPixiFilterValues()`
-- [ ] `filterFactory.ts` imports and instantiates the filter
-- [ ] `index.ts` exports class + options type
-- [ ] `model.ts` has entry in `FILTER_IDS`, `FILTER_DEFINITIONS`, and `toPixiFilterValues()`
+- follow Feature-Sliced Design (FSD) v2.1.
+- Keep code in the standard layers: `app`, `pages`, `widgets`, `features`, `entities`, and `shared`.
+- Respect the FSD import direction: a layer may import only from layers below it.
+- Keep slices isolated. Import other slices through their public `index.ts` API, not through internal files.
+- Use the FSD "Pages First" approach: keep page-specific logic in `pages`/`widgets` until reuse justifies extracting it to `features`, `entities`, or `shared`.
+
+### FSD Boundaries
+
+- Respect Feature-Sliced Design import direction.
+- Cross-slice imports should go through public `index.ts` APIs unless there is a deliberate direct import from `shared`.
+- Do not import from a higher layer:
+  - `shared` must not import from `entities`, `features`, `widgets`, or `pages`.
+  - `entities` must not import from `features`, `widgets`, or `pages`.
+  - `widgets` should not depend on feature internals.
+- If a helper is needed by a widget model and a feature, move it to `shared/lib` instead of importing from the feature.
+
+## UI And Styling
+
+- `DESIGN.md` is the design source of truth. Read it before changing visual language, layout density, colors, typography, spacing, or component treatment.
+- Use Base UI (`@base-ui/react`) primitives and skill for accessible interactive components when adding or replacing headless UI behavior.
+- Use Panda CSS (+skill) for authored styling when styling infrastructure is added or migrated. Prefer generated `styled-system` helpers (`css`, `cva`, recipes, patterns, `styled`) over ad hoc class generation.
+- Keep UI utilitarian and editor-focused: dense controls, stable dimensions, restrained panels, and content-first canvas behavior.
+
+## State And Rendering
+
+- Use Effector.js (+skill) for application state and business dataflow; prefer `sample`, `attach`, and explicit events/stores over imperative state reads in UI.
+- Use `effector-react` `useUnit` for React bindings.
+- Pixi.js owns image/canvas rendering. Keep rendering-specific code in `shared/lib/pixi` unless a higher FSD layer needs orchestration.
+
+## Review Checklist
+
+- [ ] Run `vp check`, `vp test`, and `vp build` after source changes. If `vp check` reports formatting issues, run `vp check --fix`, then rerun `vp check`.
+- [ ] Run `vp lint` and `vp test` to format, lint, type check and test changes.
+- [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation.
+
+## Do-Not-Break Rules
+
+- Do not import from the heavy `shared/lib/pixi` barrel unless Pixi runtime is intentionally needed.
+- Do not instantiate real Pixi GL/WebGPU filters/classes in default node Vitest tests without mocks.
+- Do not include halation in the base bake; use `createPixiFilters(values, context, { excludeHalation: true })`.
+- Do not bypass Effector for object URL lifecycle or export guards.
+- Do not fire two separate events for point X/Y updates; use an atomic point event such as `filterPointChanged`.
+- 
+## Gotchas For Future Agents
+
+### Pixi Imports And Bundle Size
+
+- Avoid importing from `src/shared/lib/pixi/index.ts` unless Pixi runtime is actually required.
+  - That barrel exports `PixiPhotoRenderer` and filter classes, which can pull `pixi.js` into the importing chunk.
+- For lightweight data/types, import directly from focused modules:
+  - `shared/lib/pixi/filterTypes`
+  - `shared/lib/pixi/lutPresets`
+  - `shared/lib/pixi/lutLayout`
+  - `shared/lib/pixi/cubeLut`
+  - `shared/lib/pixi/exportTypes`
+- Entity/model code must not import Pixi runtime values from the heavy Pixi barrel.
+- LUT converter code should import cube/LUT helpers directly from `shared/lib/pixi/cubeLut` and `shared/lib/pixi/lutLayout`.
+
+### Pixi Tests
+
+- If testing filter factory wiring, prefer smoke tests that assert mapped options/uniform values without requiring a real renderer.
+- Do not instantiate real Pixi GL/WebGPU objects in default Vitest node tests.
+  - Pixi may access `document` through browser adapters.
+  - Unit tests for filter factories/classes should mock `pixi.js` and `pixi-filters`, or explicitly use a DOM-capable test environment.
+
+### Effector Model Boundaries
+
+- Side effects belong in Effector effects, not React components.
+  - Object URL creation should go through `createLoadedImageFx`.
+  - Object URL release should go through `releaseImageFx`.
+- File upload flow should be `imageFileAccepted` → `createLoadedImageFx` → `imageSelected`.
+- Workspace unmount should be represented as a model event, e.g. `workspaceUnmounted`, and cleanup should be wired with `sample`.
+- Do not use React-only cleanup helpers for business/resource lifecycle if an Effector event can represent the lifecycle.
+- Export must be guarded in the model, not only by disabled UI.
+  - Export requires both `renderer !== null` and `loadedImage !== null`.
+  - Keep a model-level `$canExport` guard or equivalent `sample({ filter })`.
+
+### Filter Chain Model
+
+- Point controls must update atomically.
+  - Use `filterPointChanged` for point controls.
+  - Do not fire two sequential `filterParameterChanged` events for X/Y.
+- Keep UI-friendly values converted in `toPixiFilterValues()`.
+  - Example: percentages from controls should be converted to `0..1` ratios there, not inside shaders or UI components.
+- Add tests when adding a new filter:
+  - defaults in `createInitialFilterState()`
+  - mapping in `toPixiFilterValues()`
+  - any special factory/render-pipeline behavior
+
+</INSTRUCTIONS>
