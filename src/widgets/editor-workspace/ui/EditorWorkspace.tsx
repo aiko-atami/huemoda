@@ -1,14 +1,8 @@
-import { Suspense, lazy, useCallback, useEffect, useRef } from "react";
+import { Suspense, lazy, useCallback, useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import { useUnit } from "effector-react";
 import { css } from "styled-system/css";
-import {
-  $loadedImage,
-  formatFileSize,
-  imageCleared,
-  type LoadedImage,
-  releaseLoadedImage,
-} from "../../../entities/image";
+import { $loadedImage, formatFileSize, imageCleared } from "../../../entities/image";
 import { $pixiFilterValues } from "../../../entities/filter-chain";
 import { ExportButton } from "../../../features/export-image";
 import { ImageUploadButton } from "../../../features/image-upload";
@@ -19,10 +13,11 @@ import {
   $exportError,
   $exportFormat,
   $isExporting,
-  $isRendererReady,
+  $canExport,
   exportFormatChanged,
   exportTriggered,
   rendererChanged,
+  workspaceUnmounted,
 } from "../model";
 
 const metaContainerClass = css({
@@ -57,17 +52,17 @@ const PixiCanvas = lazy(async () => {
 });
 
 export function EditorWorkspace() {
-  const latestImageRef = useRef<LoadedImage | null>(null);
   const {
     image,
     clearImage,
     exportError,
     exportFormat,
     isExporting,
-    isRendererReady,
+    canExport,
     onExport,
     onFormatChange,
     onRendererChanged,
+    onWorkspaceUnmounted,
     pixiFilterValues,
   } = useUnit({
     image: $loadedImage,
@@ -75,25 +70,15 @@ export function EditorWorkspace() {
     exportError: $exportError,
     exportFormat: $exportFormat,
     isExporting: $isExporting,
-    isRendererReady: $isRendererReady,
+    canExport: $canExport,
     onExport: exportTriggered,
     onFormatChange: exportFormatChanged,
     onRendererChanged: rendererChanged,
+    onWorkspaceUnmounted: workspaceUnmounted,
     pixiFilterValues: $pixiFilterValues,
   });
 
-  useEffect(() => {
-    latestImageRef.current = image;
-  }, [image]);
-
-  // Release the object URL when the component unmounts (React lifecycle boundary —
-  // cannot be modelled as an Effector effect since no domain event fires on unmount).
-  useEffect(
-    () => () => {
-      releaseLoadedImage(latestImageRef.current);
-    },
-    [],
-  );
+  useEffect(() => () => onWorkspaceUnmounted(), [onWorkspaceUnmounted]);
 
   const handleRendererReady = useCallback(
     (renderer: PixiPhotoRenderer | null) => {
@@ -140,7 +125,7 @@ export function EditorWorkspace() {
               Clear
             </Button>
             <ExportButton
-              disabled={image === null || !isRendererReady}
+              disabled={!canExport}
               error={exportError}
               format={exportFormat}
               isExporting={isExporting}

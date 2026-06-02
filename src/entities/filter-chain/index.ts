@@ -9,6 +9,7 @@ export {
   LUT_PRESETS,
   filterAdded,
   filterParameterChanged,
+  filterPointChanged,
   filterRemoved,
   filterToggled,
   filtersReset,
@@ -23,6 +24,7 @@ export type {
   LutPreset,
   LutPresetId,
   FilterParameterChangedPayload,
+  FilterPointChangedPayload,
   FilterParameterDefinition,
   FilterState,
 } from "./model";

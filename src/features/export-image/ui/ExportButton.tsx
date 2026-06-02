@@ -1,6 +1,6 @@
 import { Download } from "lucide-react";
 import { css } from "styled-system/css";
-import type { ExportMimeType } from "../../../shared/lib/pixi";
+import type { ExportMimeType } from "../../../shared/lib/pixi/exportTypes";
 import { Button, SelectControl } from "../../../shared/ui";
 
 type ExportButtonProps = {

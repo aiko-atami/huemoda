@@ -1,6 +1,13 @@
 import { allSettled, fork } from "effector";
 import { describe, expect, it, vi } from "vitest";
-import { $loadedImage, imageCleared, imageSelected, releaseImageFx } from "./model";
+import {
+  $loadedImage,
+  createLoadedImageFx,
+  imageCleared,
+  imageFileAccepted,
+  imageSelected,
+  releaseImageFx,
+} from "./model";
 
 const makeImage = (id: string) => ({
   id,
@@ -18,6 +25,52 @@ describe("image model", () => {
     await allSettled(imageSelected, { scope, params: img });
 
     expect(scope.getState($loadedImage)).toEqual(img);
+  });
+
+  it("creates a loaded image in an effect when an image file is accepted", async () => {
+    const scope = fork({
+      handlers: [
+        [
+          createLoadedImageFx,
+          (file: File) => ({
+            id: "from-file",
+            name: file.name,
+            objectUrl: "blob:from-file",
+            size: file.size,
+            type: file.type,
+          }),
+        ],
+      ],
+    });
+    const file = new File(["x"], "accepted.jpg", { type: "image/jpeg" });
+
+    await allSettled(imageFileAccepted, { scope, params: file });
+
+    expect(scope.getState($loadedImage)).toEqual({
+      id: "from-file",
+      name: "accepted.jpg",
+      objectUrl: "blob:from-file",
+      size: 1,
+      type: "image/jpeg",
+    });
+  });
+
+  it("ignores non-image files accepted by the upload UI", async () => {
+    const scope = fork({
+      handlers: [
+        [
+          createLoadedImageFx,
+          () => {
+            throw new Error("should not run");
+          },
+        ],
+      ],
+    });
+    const file = new File(["x"], "notes.txt", { type: "text/plain" });
+
+    await allSettled(imageFileAccepted, { scope, params: file });
+
+    expect(scope.getState($loadedImage)).toBeNull();
   });
 
   it("resets $loadedImage when imageCleared fires", async () => {

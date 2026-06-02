@@ -8,8 +8,13 @@ export type LoadedImage = {
   type: string;
 };
 
+export const imageFileAccepted = createEvent<File>();
 export const imageSelected = createEvent<LoadedImage>();
 export const imageCleared = createEvent();
+
+export const createLoadedImageFx = createEffect<File, LoadedImage>((file) =>
+  createLoadedImage(file),
+);
 
 export const $loadedImage = createStore<LoadedImage | null>(null)
   .on(imageSelected, (_, image) => image)
@@ -26,6 +31,14 @@ export const releaseImageFx = createEffect<LoadedImage, void>((image) => {
 // This store intentionally has no .on handlers — it is updated via sample after
 // $loadedImage has already advanced, so it always lags one step behind.
 const $prevLoadedImage = createStore<LoadedImage | null>(null);
+
+sample({
+  clock: imageFileAccepted,
+  filter: (file) => file.type.startsWith("image/"),
+  target: createLoadedImageFx,
+});
+
+sample({ clock: createLoadedImageFx.doneData, target: imageSelected });
 
 // When a new image is selected and there was already one loaded, release the old URL.
 sample({ clock: imageSelected, source: $prevLoadedImage, filter: Boolean, target: releaseImageFx });
@@ -45,12 +58,6 @@ export function createLoadedImage(file: File): LoadedImage {
     size: file.size,
     type: file.type || "image/unknown",
   };
-}
-
-export function releaseLoadedImage(image: LoadedImage | null): void {
-  if (image !== null) {
-    URL.revokeObjectURL(image.objectUrl);
-  }
 }
 
 export { formatFileSize } from "../../shared/lib/format";

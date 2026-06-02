@@ -2,7 +2,7 @@ import { useCallback, useId, useRef, useState } from "react";
 import type { ChangeEvent, DragEvent } from "react";
 import { Upload } from "lucide-react";
 import { useUnit } from "effector-react";
-import { $loadedImage, createLoadedImage, imageSelected } from "../../../entities/image";
+import { $loadedImage, imageFileAccepted } from "../../../entities/image";
 import { uploadButtonRecipe } from "./uploadButtonRecipe";
 
 type ImageUploadButtonProps = {
@@ -15,7 +15,7 @@ export function ImageUploadButton({ variant = "compact" }: ImageUploadButtonProp
   const [isDragging, setIsDragging] = useState(false);
   const { currentImage, selectImage } = useUnit({
     currentImage: $loadedImage,
-    selectImage: imageSelected,
+    selectImage: imageFileAccepted,
   });
 
   const acceptFile = useCallback(
@@ -24,7 +24,7 @@ export function ImageUploadButton({ variant = "compact" }: ImageUploadButtonProp
         return;
       }
 
-      selectImage(createLoadedImage(file));
+      selectImage(file);
 
       if (inputRef.current !== null) {
         inputRef.current.value = "";

@@ -1,7 +1,7 @@
 import { combine, createEvent, createStore } from "effector";
-import type { PixiFilterValues } from "../../shared/lib/pixi";
-import { DEFAULT_LUT_PRESET_ID, LUT_PRESETS } from "../../shared/lib/pixi";
-import type { LutPreset, LutPresetId } from "../../shared/lib/pixi";
+import type { PixiFilterValues } from "../../shared/lib/pixi/filterTypes";
+import { DEFAULT_LUT_PRESET_ID, LUT_PRESETS } from "../../shared/lib/pixi/lutPresets";
+import type { LutPreset, LutPresetId } from "../../shared/lib/pixi/lutPresets";
 
 const FILTER_IDS = [
   "tone",
@@ -84,6 +84,13 @@ export type FilterParameterChangedPayload = {
   filterId: FilterId;
   parameterId: string;
   value: number | string;
+};
+
+export type FilterPointChangedPayload = {
+  filterId: FilterId;
+  parameterId: string;
+  x: number;
+  y: number;
 };
 
 export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
@@ -807,6 +814,7 @@ export const filterAdded = createEvent<FilterId>();
 export const filterRemoved = createEvent<FilterId>();
 export const filterToggled = createEvent<FilterId>();
 export const filterParameterChanged = createEvent<FilterParameterChangedPayload>();
+export const filterPointChanged = createEvent<FilterPointChangedPayload>();
 export const filtersReset = createEvent();
 export const lutPreviewPresetChanged = createEvent<string | null>();
 
@@ -815,6 +823,7 @@ export const $filterChain = createStore<FilterChainState>(createInitialFilterSta
   .on(filterRemoved, removeFilterFromChain)
   .on(filterToggled, toggleFilterState)
   .on(filterParameterChanged, updateFilterParameterState)
+  .on(filterPointChanged, updateFilterPointState)
   .reset(filtersReset);
 
 export const $lutPreviewPresetId = createStore<string | null>(null).on(
@@ -916,6 +925,45 @@ export function updateFilterParameterState(
       parameters: {
         ...state[payload.filterId].parameters,
         [payload.parameterId]: nextValue,
+      },
+    },
+  };
+}
+
+export function updateFilterPointState(
+  state: FilterChainState,
+  payload: FilterPointChangedPayload,
+): FilterChainState {
+  const parameter = findFilterDefinition(payload.filterId).parameters.find(
+    (item): item is PointFilterParameterDefinition =>
+      item.type === "point" && item.id === payload.parameterId,
+  );
+
+  if (parameter === undefined) {
+    return state;
+  }
+
+  const nextX = resolveParameterValue(
+    pointAxisToRangeParameter(parameter.xId, parameter.label, parameter.defaultX),
+    payload.x,
+  );
+  const nextY = resolveParameterValue(
+    pointAxisToRangeParameter(parameter.yId, parameter.label, parameter.defaultY),
+    payload.y,
+  );
+
+  if (typeof nextX !== "number" || typeof nextY !== "number") {
+    return state;
+  }
+
+  return {
+    ...state,
+    [payload.filterId]: {
+      ...state[payload.filterId],
+      parameters: {
+        ...state[payload.filterId].parameters,
+        [parameter.xId]: nextX,
+        [parameter.yId]: nextY,
       },
     },
   };
@@ -1115,6 +1163,22 @@ function createDefaultParameters(definition: FilterDefinition): Record<string, n
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function pointAxisToRangeParameter(
+  id: string,
+  label: string,
+  defaultValue: number,
+): RangeFilterParameterDefinition {
+  return {
+    id,
+    label,
+    type: "range",
+    min: 0,
+    max: 100,
+    step: 1,
+    defaultValue,
+  };
 }
 
 function resolveParameterValue(

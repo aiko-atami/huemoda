@@ -5,6 +5,7 @@ import { useUnit } from "effector-react";
 import {
   type FilterParameterDefinition,
   type FilterParameterChangedPayload,
+  type FilterPointChangedPayload,
   $addedFilterDefinitions,
   $filterChain,
   $hasActiveFilters,
@@ -12,6 +13,7 @@ import {
   type FilterId,
   filterAdded,
   filterParameterChanged,
+  filterPointChanged,
   filterRemoved,
   filterToggled,
   filtersReset,
@@ -34,6 +36,7 @@ export function FilterPanel() {
     removeFilter,
     resetFilters,
     setParameter,
+    setPoint,
     toggleFilter,
   } = useUnit({
     addedFilterDefinitions: $addedFilterDefinitions,
@@ -45,6 +48,7 @@ export function FilterPanel() {
     removeFilter: filterRemoved,
     resetFilters: filtersReset,
     setParameter: filterParameterChanged,
+    setPoint: filterPointChanged,
     toggleFilter: filterToggled,
   });
 
@@ -138,6 +142,7 @@ export function FilterPanel() {
                           disabled: !filterState.enabled,
                           filterId: definition.id,
                           onChange: setParameter,
+                          onPointChange: setPoint,
                           onPreview:
                             definition.id === "lut" && parameter.id === "presetId"
                               ? previewLutPreset
@@ -229,12 +234,14 @@ function renderParameterControl({
   filterId,
   onChange,
   onPreview,
+  onPointChange,
   parameter,
   parameters,
 }: {
   disabled: boolean;
   filterId: FilterId;
   onChange: (payload: FilterParameterChangedPayload) => void;
+  onPointChange: (payload: FilterPointChangedPayload) => void;
   onPreview?: (value: string | null) => void;
   parameter: FilterParameterDefinition;
   parameters: Record<string, number | string>;
@@ -256,8 +263,7 @@ function renderParameterControl({
         y={yValue}
         disabled={disabled}
         onValueChange={(x, y) => {
-          onChange({ filterId, parameterId: parameter.xId, value: x });
-          onChange({ filterId, parameterId: parameter.yId, value: y });
+          onPointChange({ filterId, parameterId: parameter.id, x, y });
         }}
       />
     );

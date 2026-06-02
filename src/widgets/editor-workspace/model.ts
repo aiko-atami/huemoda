@@ -1,22 +1,25 @@
-import { attach, createEffect, createEvent, createStore, sample } from "effector";
+import { attach, combine, createEffect, createEvent, createStore, sample } from "effector";
 import type { LoadedImage } from "../../entities/image";
-import { $loadedImage } from "../../entities/image";
-import { buildExportFilename } from "../../features/export-image";
+import { $loadedImage, imageCleared } from "../../entities/image";
+import { buildExportFilename } from "../../shared/lib/exportFilename";
 import { downloadBlob } from "../../shared/lib/download";
-import type { ExportMimeType, PixiPhotoRenderer } from "../../shared/lib/pixi";
+import type { PixiPhotoRenderer } from "../../shared/lib/pixi";
+import type { ExportMimeType } from "../../shared/lib/pixi/exportTypes";
 
 // ---------------------------------------------------------------------------
 // Renderer lifecycle
 // ---------------------------------------------------------------------------
 
 export const rendererChanged = createEvent<PixiPhotoRenderer | null>();
+export const workspaceUnmounted = createEvent();
 
-export const $renderer = createStore<PixiPhotoRenderer | null>(null).on(
-  rendererChanged,
-  (_, renderer) => renderer,
-);
+export const $renderer = createStore<PixiPhotoRenderer | null>(null)
+  .on(rendererChanged, (_, renderer) => renderer)
+  .reset(workspaceUnmounted);
 
 export const $isRendererReady = $renderer.map((r) => r !== null);
+
+sample({ clock: workspaceUnmounted, target: imageCleared });
 
 // ---------------------------------------------------------------------------
 // Export format
@@ -35,27 +38,37 @@ export const $exportFormat = createStore<ExportMimeType>("image/webp").on(
 
 export const exportTriggered = createEvent();
 
+export const $canExport = combine(
+  { renderer: $renderer, image: $loadedImage },
+  ({ renderer, image }) => renderer !== null && image !== null,
+);
+
 type ExportParams = {
-  renderer: PixiPhotoRenderer | null;
-  image: LoadedImage | null;
+  renderer: PixiPhotoRenderer;
+  image: LoadedImage;
   format: ExportMimeType;
 };
 
 const rawExportFx = createEffect(async ({ renderer, image, format }: ExportParams) => {
-  if (renderer === null) throw new Error("Renderer not ready");
-
   const blob = await renderer.exportImage({
     mimeType: format,
     quality: format === "image/jpeg" ? 0.92 : undefined,
   });
 
-  downloadBlob(blob, buildExportFilename(image?.name ?? "export", format));
+  downloadBlob(blob, buildExportFilename(image.name, format));
 });
 
 // Attaches source stores so callers pass no params.
 export const exportImageFx = attach({
   source: { renderer: $renderer, image: $loadedImage, format: $exportFormat },
   effect: rawExportFx,
+  mapParams: (_, { renderer, image, format }) => {
+    if (renderer === null || image === null) {
+      throw new Error("Export requires a loaded image and ready renderer");
+    }
+
+    return { renderer, image, format };
+  },
 });
 
 export const $isExporting = exportImageFx.pending;
@@ -66,5 +79,4 @@ export const $exportError = createStore<string | null>(null)
   )
   .reset(exportTriggered);
 
-// Trigger export only when renderer is ready.
-sample({ clock: exportTriggered, filter: $isRendererReady, target: exportImageFx });
+sample({ clock: exportTriggered, filter: $canExport, target: exportImageFx });
