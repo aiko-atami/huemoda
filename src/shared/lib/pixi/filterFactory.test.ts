@@ -2,6 +2,17 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { createEmptyPixiFilterValues } from "./filterTypes";
 
 vi.mock("pixi.js", () => {
+  class BlurFilter {
+    readonly options: unknown;
+    repeatEdgePixels = false;
+
+    constructor(options: unknown) {
+      this.options = options;
+    }
+
+    destroy() {}
+  }
+
   class Filter {
     readonly filterOptions: unknown;
     resources: Record<string, { uniforms?: Record<string, number> }>;
@@ -37,6 +48,7 @@ vi.mock("pixi.js", () => {
   }
 
   return {
+    BlurFilter,
     Filter,
     GlProgram: { from: vi.fn((options) => options) },
     GpuProgram: { from: vi.fn((options) => options) },
@@ -95,6 +107,61 @@ describe("Pixi filter factory", () => {
     values.halation.enabled = true;
 
     expect(filterFactory.createPixiFilters(values)).toEqual([]);
+  });
+
+  it("creates smooth regular Gaussian blur with clamped edges", () => {
+    const values = createEmptyPixiFilterValues();
+    values.blur.enabled = true;
+    values.blur.strength = 4;
+
+    const filters = filterFactory.createPixiFilters(values);
+
+    expect(filters).toHaveLength(1);
+    expect(filters[0]).toMatchObject({
+      options: {
+        strength: 4,
+        quality: 4,
+        kernelSize: 9,
+      },
+      repeatEdgePixels: true,
+    });
+  });
+
+  it("binds grain uniforms with the same name used by the WGSL program", () => {
+    const values = createEmptyPixiFilterValues();
+    values.grain.enabled = true;
+    values.grain.amount = 0.25;
+
+    const filters = filterFactory.createPixiFilters(values, {
+      width: 1920,
+      height: 1080,
+      grainSeed: 0.42,
+    });
+
+    expect(filters).toHaveLength(1);
+    expect(filters[0]).toMatchObject({
+      resources: {
+        grainUniforms: {
+          uniforms: {
+            uAmount: 0.25,
+            uSeed: 0.42,
+          },
+        },
+      },
+    });
+
+    const filterOptions = (
+      filters[0] as unknown as {
+        filterOptions: {
+          gpuProgram: { fragment: { source: string } };
+        };
+      }
+    ).filterOptions;
+
+    expect(filterOptions.gpuProgram.fragment.source).toContain(
+      "@group(1) @binding(0) var<uniform> grainUniforms: GrainUniforms;",
+    );
+    expect(filterOptions.gpuProgram.fragment.source).toContain("let u = grainUniforms;");
   });
 
   it("creates halation signal and composite filters from mapped values", () => {

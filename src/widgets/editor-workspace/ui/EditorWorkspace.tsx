@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useUnit } from "effector-react";
 import { css } from "styled-system/css";
@@ -8,7 +8,7 @@ import { ExportButton } from "../../../features/export-image";
 import { ImageUploadButton } from "../../../features/image-upload";
 import { FilterPanel } from "../../../features/filter-controls";
 import { Button } from "../../../shared/ui";
-import type { PixiPhotoRenderer } from "../../../shared/lib/pixi";
+import type { PixiPhotoRenderer, PixiRendererBackend } from "../../../shared/lib/pixi";
 import {
   $exportError,
   $exportFormat,
@@ -52,6 +52,9 @@ const PixiCanvas = lazy(async () => {
 });
 
 export function EditorWorkspace() {
+  const [rendererBackend, setRendererBackend] = useState<PixiRendererBackend | "initializing">(
+    "initializing",
+  );
   const {
     image,
     clearImage,
@@ -82,6 +85,7 @@ export function EditorWorkspace() {
 
   const handleRendererReady = useCallback(
     (renderer: PixiPhotoRenderer | null) => {
+      setRendererBackend(renderer?.getRendererBackend() ?? "unknown");
       onRendererChanged(renderer);
     },
     [onRendererChanged],
@@ -100,6 +104,9 @@ export function EditorWorkspace() {
           </div>
 
           <div className={metaContainerClass} aria-live="polite">
+            <span className={metaChipClass}>
+              Renderer: {formatRendererBackend(rendererBackend)}
+            </span>
             {image === null ? (
               <span className={metaChipClass}>No image loaded</span>
             ) : (
@@ -154,4 +161,20 @@ export function EditorWorkspace() {
       <FilterPanel />
     </section>
   );
+}
+function formatRendererBackend(backend: PixiRendererBackend | "initializing"): string {
+  switch (backend) {
+    case "webgpu":
+      return "WebGPU";
+    case "webgl2":
+      return "WebGL 2";
+    case "webgl":
+      return "WebGL";
+    case "canvas":
+      return "Canvas";
+    case "initializing":
+      return "initializing";
+    case "unknown":
+      return "unknown";
+  }
 }

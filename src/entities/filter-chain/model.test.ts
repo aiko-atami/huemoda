@@ -17,7 +17,7 @@ describe("filter chain model", () => {
     expect(state.tone.parameters.brightness).toBe(1);
     expect(state.lut.parameters.presetId).toBe("warmEditorial");
     expect(state.lut.parameters.intensity).toBe(0.35);
-    expect(state.grain.parameters.intensity).toBe(0.07);
+    expect(state.grain.parameters.amount).toBe(0.1);
     expect(state.chromaticAberration.parameters.intensity).toBe(0.25);
     expect(state.chromaticAberration.parameters.offset).toBe(1);
   });

@@ -1,8 +1,8 @@
+import { BlurFilter } from "pixi.js";
 import type { Filter, Texture } from "pixi.js";
 import { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
 import { CrtFilter } from "./CrtFilter";
 import { GrainFilter } from "./GrainFilter";
-import { GrainV2Filter } from "./GrainV2Filter";
 import { HalationCompositeFilter } from "./HalationCompositeFilter";
 import { HalationExtractFilter } from "./HalationExtractFilter";
 import { LensFlareFilter } from "./LensFlareFilter";
@@ -43,7 +43,6 @@ export function createPixiFilters(
     glitch,
     glow,
     grain,
-    grainV2,
     lensFlare,
     lightLeak,
     lut,
@@ -80,36 +79,28 @@ export function createPixiFilters(
   }
 
   if (blur.enabled && blur.strength > 0) {
-    filters.push(
-      new KawaseBlurFilter({
-        strength: blur.strength,
-        quality: 3,
-      }),
-    );
+    const gaussianBlur = new BlurFilter({
+      strength: blur.strength,
+      quality: 4,
+      kernelSize: 9,
+    });
+    gaussianBlur.repeatEdgePixels = true;
+
+    filters.push(gaussianBlur);
   }
 
-  if (grain.enabled && grain.intensity > 0) {
+  if (grain.enabled && grain.amount > 0) {
     filters.push(
       new GrainFilter({
-        intensity: grain.intensity,
-        grainSize: grain.grainSize,
-        seed: context?.grainSeed ?? Math.random(),
-      }),
-    );
-  }
-
-  if (grainV2.enabled && grainV2.amount > 0) {
-    filters.push(
-      new GrainV2Filter({
-        amount: grainV2.amount,
-        size: grainV2.size,
-        chroma: grainV2.chroma,
-        shadows: grainV2.shadows,
-        midtones: grainV2.midtones,
-        highlights: grainV2.highlights,
-        grainShape: grainV2.grainShape,
-        positive: grainV2.positive,
-        resolutionLoss: grainV2.resolutionLoss,
+        amount: grain.amount,
+        size: grain.size,
+        chroma: grain.chroma,
+        shadows: grain.shadows,
+        midtones: grain.midtones,
+        highlights: grain.highlights,
+        grainShape: grain.grainShape,
+        positive: grain.positive,
+        resolutionLoss: grain.resolutionLoss,
         seed: context?.grainSeed ?? Math.random(),
       }),
     );

@@ -5,6 +5,8 @@ import { createEmptyPixiFilterValues, type PixiFilterValues } from "./filterType
 import { LUT_PRESETS } from "./lutPresets";
 import type { ExportMimeType } from "./exportTypes";
 
+export type PixiRendererBackend = "webgpu" | "webgl2" | "webgl" | "canvas" | "unknown";
+
 type ExportOptions = {
   mimeType: ExportMimeType;
   quality?: number;
@@ -59,6 +61,14 @@ export class PixiPhotoRenderer {
 
   async ready(): Promise<void> {
     await this.readyPromise;
+  }
+
+  getRendererBackend(): PixiRendererBackend {
+    if (this.app === null) {
+      return "unknown";
+    }
+
+    return getRendererBackend(this.app.renderer);
   }
 
   async setImage(objectUrl: string | null): Promise<void> {
@@ -211,7 +221,7 @@ export class PixiPhotoRenderer {
       antialias: true,
       autoDensity: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
-      preference: ["webgl", "webgpu"],
+      preference: ["webgpu", "webgl"],
       powerPreference: "high-performance",
     });
 
@@ -466,6 +476,38 @@ export class PixiPhotoRenderer {
       }
     }
   }
+}
+
+type RendererBackendProbe = {
+  context?: { webGLVersion?: number };
+  gl?: unknown;
+  gpu?: unknown;
+};
+
+function getRendererBackend(renderer: unknown): PixiRendererBackend {
+  const probe = renderer as RendererBackendProbe;
+
+  if (probe.gpu !== undefined) {
+    return "webgpu";
+  }
+
+  if (probe.context?.webGLVersion === 2) {
+    return "webgl2";
+  }
+
+  if (probe.context?.webGLVersion === 1 || probe.gl !== undefined) {
+    return "webgl";
+  }
+
+  if (renderer !== null && typeof renderer === "object") {
+    const constructorName = renderer.constructor.name.toLowerCase();
+
+    if (constructorName.includes("canvas")) {
+      return "canvas";
+    }
+  }
+
+  return "unknown";
 }
 
 async function loadImageElement(source: string): Promise<HTMLImageElement> {

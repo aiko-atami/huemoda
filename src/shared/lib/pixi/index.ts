@@ -1,5 +1,6 @@
 export { PixiPhotoRenderer } from "./PixiPhotoRenderer";
 export type { ExportMimeType } from "./exportTypes";
+export type { PixiRendererBackend } from "./PixiPhotoRenderer";
 
 export {
   createHalationCompositeFilter,
@@ -24,9 +25,6 @@ export type { ChromaticAberrationOptions } from "./ChromaticAberrationFilter";
 
 export { GrainFilter } from "./GrainFilter";
 export type { GrainOptions } from "./GrainFilter";
-
-export { GrainV2Filter } from "./GrainV2Filter";
-export type { GrainV2Options } from "./GrainV2Filter";
 
 export { HalationExtractFilter } from "./HalationExtractFilter";
 export type { HalationExtractOptions } from "./HalationExtractFilter";

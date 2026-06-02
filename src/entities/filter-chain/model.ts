@@ -8,7 +8,6 @@ const FILTER_IDS = [
   "lut",
   "blur",
   "grain",
-  "grainV2",
   "halation",
   "lightLeak",
   "advancedBloom",
@@ -158,7 +157,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
   {
     id: "blur",
     title: "Blur",
-    description: "Kawase GPU blur for diffusion and polish.",
+    description: "Gaussian GPU blur for diffusion and polish.",
     parameters: [
       {
         id: "strength",
@@ -175,31 +174,6 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
   {
     id: "grain",
     title: "Grain",
-    description: "Fine noise for film texture.",
-    parameters: [
-      {
-        id: "intensity",
-        label: "Intensity",
-        type: "range",
-        min: 0,
-        max: 0.55,
-        step: 0.01,
-        defaultValue: 0.07,
-      },
-      {
-        id: "grainSize",
-        label: "Size",
-        type: "range",
-        min: 1,
-        max: 4,
-        step: 0.25,
-        defaultValue: 1.25,
-      },
-    ],
-  },
-  {
-    id: "grainV2",
-    title: "Grain V2",
     description: "Dehancer-style film grain with tonal masks, clustering, and density response.",
     parameters: [
       {
@@ -1135,20 +1109,15 @@ export function toPixiFilterValues(filterChain: FilterChainState): PixiFilterVal
     },
     grain: {
       enabled: filterChain.grain.enabled,
-      intensity: getNumericParameter(filterChain.grain, "intensity"),
-      grainSize: getNumericParameter(filterChain.grain, "grainSize"),
-    },
-    grainV2: {
-      enabled: filterChain.grainV2.enabled,
-      amount: getNumericParameter(filterChain.grainV2, "amount"),
-      size: getNumericParameter(filterChain.grainV2, "size"),
-      chroma: getNumericParameter(filterChain.grainV2, "chroma"),
-      shadows: getNumericParameter(filterChain.grainV2, "shadows"),
-      midtones: getNumericParameter(filterChain.grainV2, "midtones"),
-      highlights: getNumericParameter(filterChain.grainV2, "highlights"),
-      grainShape: getNumericParameter(filterChain.grainV2, "grainShape"),
-      positive: getStringParameter(filterChain.grainV2, "filmType") === "positive" ? 0 : 1,
-      resolutionLoss: getNumericParameter(filterChain.grainV2, "resolutionLoss"),
+      amount: getNumericParameter(filterChain.grain, "amount"),
+      size: getNumericParameter(filterChain.grain, "size"),
+      chroma: getNumericParameter(filterChain.grain, "chroma"),
+      shadows: getNumericParameter(filterChain.grain, "shadows"),
+      midtones: getNumericParameter(filterChain.grain, "midtones"),
+      highlights: getNumericParameter(filterChain.grain, "highlights"),
+      grainShape: getNumericParameter(filterChain.grain, "grainShape"),
+      positive: getStringParameter(filterChain.grain, "filmType") === "positive" ? 0 : 1,
+      resolutionLoss: getNumericParameter(filterChain.grain, "resolutionLoss"),
     },
     halation: {
       enabled: filterChain.halation.enabled,
