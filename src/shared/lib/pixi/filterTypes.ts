@@ -20,6 +20,18 @@ export type PixiFilterValues = {
     positive: number;
     resolutionLoss: number;
   };
+  halation: {
+    enabled: boolean;
+    sourceLimiter: number;
+    backgroundGain: number;
+    smoothness: number;
+    localDiffusion: number;
+    globalDiffusion: number;
+    amplify: number;
+    hue: number;
+    blueComp: number;
+    impact: number;
+  };
   lut: {
     enabled: boolean;
     intensity: number;
@@ -154,6 +166,18 @@ export function createEmptyPixiFilterValues(): PixiFilterValues {
       grainShape: 0.0,
       positive: 1.0,
       resolutionLoss: 0.12,
+    },
+    halation: {
+      enabled: false,
+      sourceLimiter: 0.75,
+      backgroundGain: 1,
+      smoothness: 0.5,
+      localDiffusion: 0.3,
+      globalDiffusion: 0.2,
+      amplify: 0.5,
+      hue: 0.3,
+      blueComp: 0,
+      impact: 0.5,
     },
     lut: {
       enabled: false,

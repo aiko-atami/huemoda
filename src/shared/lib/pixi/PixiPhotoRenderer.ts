@@ -1,10 +1,9 @@
 import { Application, Assets, Container, Rectangle, RenderTexture, Sprite, Texture } from "pixi.js";
 import type { Filter } from "pixi.js";
-import { createPixiFilters } from "./filterFactory";
+import { createHalationSignalFilters, createPixiFilters } from "./filterFactory";
 import { createEmptyPixiFilterValues, type PixiFilterValues } from "./filterTypes";
 import { LUT_PRESETS } from "./lutPresets";
-
-export type ExportMimeType = "image/png" | "image/jpeg" | "image/webp";
+import type { ExportMimeType } from "./exportTypes";
 
 type ExportOptions = {
   mimeType: ExportMimeType;
@@ -36,6 +35,8 @@ export class PixiPhotoRenderer {
   private displaySprite: Sprite | null = null;
   private texture: Texture | null = null;
   private filteredTexture: RenderTexture | null = null;
+  private halationBaseTexture: RenderTexture | null = null;
+  private halationSignalTexture: RenderTexture | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private disposed = false;
   private initialized = false;
@@ -164,7 +165,9 @@ export class PixiPhotoRenderer {
       throw new Error("Nothing to export");
     }
 
-    this.updateFilteredTexture();
+    if (this.filteredTexture === null && this.activeFilters.length > 0) {
+      this.updateFilteredTexture();
+    }
 
     const exportSprite = new Sprite(this.filteredTexture ?? this.texture);
 
@@ -279,14 +282,62 @@ export class PixiPhotoRenderer {
     }
 
     destroyFilters(this.activeFilters);
-    this.activeFilters = createPixiFilters(this.filterValues, {
+
+    const context = {
       width: this.texture.width,
       height: this.texture.height,
       lutTextures: this.lutTextures,
       grainSeed: this.grainSeed,
+    };
+
+    if (this.filterValues.halation.enabled) {
+      const baseFilters = createPixiFilters(this.filterValues, context);
+      this.sourceSprite.filters = baseFilters.length > 0 ? baseFilters : null;
+      const baseTexture = this.bakeToRenderTexture(this.sourceSprite);
+      this.sourceSprite.filters = null;
+
+      const { extract, blur } = createHalationSignalFilters(this.filterValues.halation);
+      const signalSprite = new Sprite(baseTexture);
+      signalSprite.filters = [extract, blur];
+      const signalTexture = this.bakeToRenderTexture(signalSprite);
+      signalSprite.destroy();
+
+      const finalStage = new Container();
+      const baseSprite = new Sprite(baseTexture);
+      const haloSprite = new Sprite(signalTexture);
+      haloSprite.blendMode = "screen";
+      haloSprite.alpha = getHalationOverlayAlpha(this.filterValues.halation);
+      finalStage.addChild(baseSprite, haloSprite);
+      const finalTexture = this.bakeToRenderTexture(finalStage);
+      finalStage.destroy({ children: true });
+
+      this.displaySprite!.texture = finalTexture;
+      this.destroyFilteredTexture();
+      this.filteredTexture = finalTexture;
+      this.halationBaseTexture?.destroy(true);
+      this.halationBaseTexture = baseTexture;
+      this.halationSignalTexture?.destroy(true);
+      this.halationSignalTexture = signalTexture;
+      this.activeFilters = [...baseFilters, extract, blur];
+    } else {
+      this.activeFilters = createPixiFilters(this.filterValues, context);
+      this.sourceSprite.filters = this.activeFilters.length > 0 ? this.activeFilters : null;
+      this.halationBaseTexture?.destroy(true);
+      this.halationBaseTexture = null;
+      this.halationSignalTexture?.destroy(true);
+      this.halationSignalTexture = null;
+      this.updateFilteredTexture();
+    }
+  }
+
+  private bakeToRenderTexture(target: Container): RenderTexture {
+    return this.app!.renderer.textureGenerator.generateTexture({
+      target,
+      frame: new Rectangle(0, 0, this.texture!.width, this.texture!.height),
+      resolution: 1,
+      antialias: true,
+      clearColor: "#00000000",
     });
-    this.sourceSprite.filters = this.activeFilters.length === 0 ? null : this.activeFilters;
-    this.updateFilteredTexture();
   }
 
   private resetViewport(): void {
@@ -330,6 +381,10 @@ export class PixiPhotoRenderer {
     this.sourceSprite?.destroy();
     this.displaySprite?.destroy();
     this.destroyFilteredTexture();
+    this.halationBaseTexture?.destroy(true);
+    this.halationBaseTexture = null;
+    this.halationSignalTexture?.destroy(true);
+    this.halationSignalTexture = null;
     this.texture?.destroy(true);
     this.sourceSprite = null;
     this.displaySprite = null;
@@ -437,6 +492,14 @@ function waitForImageLoad(image: HTMLImageElement): Promise<HTMLImageElement> {
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error("Image failed to load"));
   });
+}
+
+function getHalationOverlayAlpha(values: PixiFilterValues["halation"]): number {
+  const gain = 0.5 + values.backgroundGain * 0.5;
+  const strength =
+    values.impact * (0.35 + values.amplify * 1.65) * gain * (1 + values.blueComp * 0.5);
+
+  return Math.max(0, Math.min(1, strength));
 }
 
 function destroyFilters(filters: Filter[]): void {

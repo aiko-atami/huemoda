@@ -164,6 +164,49 @@ describe("filter chain model", () => {
     expect(pixiValues.spinBlur.size).toBeCloseTo(0.5);
   });
 
+  it("creates halation with default parameters", () => {
+    const state = createInitialFilterState();
+
+    expect(state.halation.added).toBe(false);
+    expect(state.halation.enabled).toBe(false);
+    expect(state.halation.parameters.sourceLimiter).toBe(75);
+    expect(state.halation.parameters.backgroundGain).toBe(100);
+    expect(state.halation.parameters.smoothness).toBe(50);
+    expect(state.halation.parameters.localDiffusion).toBe(30);
+    expect(state.halation.parameters.globalDiffusion).toBe(20);
+    expect(state.halation.parameters.amplify).toBe(50);
+    expect(state.halation.parameters.hue).toBe(30);
+    expect(state.halation.parameters.blueComp).toBe(0);
+    expect(state.halation.parameters.impact).toBe(50);
+  });
+
+  it("maps halation control percentages to Pixi filter ratios", () => {
+    let state = addFilterToChain(createInitialFilterState(), "halation");
+    state = updateFilterParameterState(state, {
+      filterId: "halation",
+      parameterId: "sourceLimiter",
+      value: 25,
+    });
+    state = updateFilterParameterState(state, {
+      filterId: "halation",
+      parameterId: "blueComp",
+      value: 40,
+    });
+
+    expect(toPixiFilterValues(state).halation).toEqual({
+      enabled: true,
+      sourceLimiter: 0.25,
+      backgroundGain: 1,
+      smoothness: 0.5,
+      localDiffusion: 0.3,
+      globalDiffusion: 0.2,
+      amplify: 0.5,
+      hue: 0.3,
+      blueComp: 0.4,
+      impact: 0.5,
+    });
+  });
+
   it("creates spin blur with default parameters", () => {
     const state = createInitialFilterState();
 

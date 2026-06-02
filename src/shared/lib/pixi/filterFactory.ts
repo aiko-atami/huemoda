@@ -3,6 +3,8 @@ import { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
 import { CrtFilter } from "./CrtFilter";
 import { GrainFilter } from "./GrainFilter";
 import { GrainV2Filter } from "./GrainV2Filter";
+import { HalationCompositeFilter } from "./HalationCompositeFilter";
+import { HalationExtractFilter } from "./HalationExtractFilter";
 import { LensFlareFilter } from "./LensFlareFilter";
 import { LutFilter } from "./LutFilter";
 import { SpinBlurFilter } from "./SpinBlurFilter";
@@ -265,6 +267,38 @@ export function createPixiFilters(
   }
 
   return filters;
+}
+
+export function createHalationSignalFilters(values: PixiFilterValues["halation"]): {
+  extract: HalationExtractFilter;
+  blur: KawaseBlurFilter;
+} {
+  const extract = new HalationExtractFilter({
+    sourceLimiter: values.sourceLimiter,
+    smoothness: values.smoothness,
+    hue: values.hue,
+  });
+
+  const blur = new KawaseBlurFilter({
+    strength: values.localDiffusion * 24 + values.globalDiffusion * 36,
+    quality: 5,
+  });
+
+  return { extract, blur };
+}
+
+export function createHalationCompositeFilter(
+  values: PixiFilterValues["halation"],
+  halationTexture: Texture,
+): HalationCompositeFilter {
+  return new HalationCompositeFilter({
+    backgroundGain: values.backgroundGain,
+    globalDiffusion: values.globalDiffusion,
+    amplify: values.amplify,
+    blueComp: values.blueComp,
+    impact: values.impact,
+    halationTexture,
+  });
 }
 
 function getLightLeakColor(warmth: number): number {

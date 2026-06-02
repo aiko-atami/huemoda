@@ -1,7 +1,11 @@
 export { PixiPhotoRenderer } from "./PixiPhotoRenderer";
-export type { ExportMimeType } from "./PixiPhotoRenderer";
+export type { ExportMimeType } from "./exportTypes";
 
-export { createPixiFilters } from "./filterFactory";
+export {
+  createHalationCompositeFilter,
+  createHalationSignalFilters,
+  createPixiFilters,
+} from "./filterFactory";
 export type { PixiFilterContext } from "./filterFactory";
 
 export { createEmptyPixiFilterValues } from "./filterTypes";
@@ -23,6 +27,12 @@ export type { GrainOptions } from "./GrainFilter";
 
 export { GrainV2Filter } from "./GrainV2Filter";
 export type { GrainV2Options } from "./GrainV2Filter";
+
+export { HalationExtractFilter } from "./HalationExtractFilter";
+export type { HalationExtractOptions } from "./HalationExtractFilter";
+
+export { HalationCompositeFilter } from "./HalationCompositeFilter";
+export type { HalationCompositeOptions } from "./HalationCompositeFilter";
 
 export { LensFlareFilter } from "./LensFlareFilter";
 export type { LensFlareOptions } from "./LensFlareFilter";
