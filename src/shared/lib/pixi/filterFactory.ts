@@ -1,4 +1,3 @@
-import { BlurFilter } from "pixi.js";
 import type { Filter, Texture } from "pixi.js";
 import { ChromaticAberrationFilter } from "./ChromaticAberrationFilter";
 import { CrtFilter } from "./CrtFilter";
@@ -7,6 +6,7 @@ import { HalationCompositeFilter } from "./HalationCompositeFilter";
 import { HalationExtractFilter } from "./HalationExtractFilter";
 import { LensFlareFilter } from "./LensFlareFilter";
 import { LutFilter } from "./LutFilter";
+import { createMirroredBlurFilters } from "./MirroredBlurFilter";
 import { SpinBlurFilter } from "./SpinBlurFilter";
 import {
   AdvancedBloomFilter,
@@ -79,14 +79,7 @@ export function createPixiFilters(
   }
 
   if (blur.enabled && blur.strength > 0) {
-    const gaussianBlur = new BlurFilter({
-      strength: blur.strength,
-      quality: 4,
-      kernelSize: 9,
-    });
-    gaussianBlur.repeatEdgePixels = true;
-
-    filters.push(gaussianBlur);
+    filters.push(...createMirroredBlurFilters(blur.strength));
   }
 
   if (grain.enabled && grain.amount > 0) {

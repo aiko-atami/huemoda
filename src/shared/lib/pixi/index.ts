@@ -36,6 +36,8 @@ export { LensFlareFilter } from "./LensFlareFilter";
 export type { LensFlareOptions } from "./LensFlareFilter";
 
 export { LutFilter } from "./LutFilter";
+export { createMirroredBlurFilters, MirroredBlurFilter } from "./MirroredBlurFilter";
+export type { MirroredBlurOptions } from "./MirroredBlurFilter";
 export type { LutFilterOptions } from "./LutFilter";
 
 export { SpinBlurFilter } from "./SpinBlurFilter";

@@ -131,22 +131,63 @@ describe("Pixi filter factory", () => {
     expect(filterFactory.createPixiFilters(values)).toEqual([]);
   });
 
-  it("creates smooth regular Gaussian blur with clamped edges", () => {
+  it("creates regular Gaussian blur with mirrored canvas edges", () => {
     const values = createEmptyPixiFilterValues();
     values.blur.enabled = true;
     values.blur.strength = 4;
 
     const filters = filterFactory.createPixiFilters(values);
 
-    expect(filters).toHaveLength(1);
+    expect(filters).toHaveLength(2);
     expect(filters[0]).toMatchObject({
-      options: {
-        strength: 4,
-        quality: 4,
-        kernelSize: 9,
+      resources: {
+        mirroredBlurUniforms: {
+          uniforms: {
+            uStrength: 4,
+            uRadius: 12,
+            uDirectionX: 1,
+            uDirectionY: 0,
+          },
+        },
       },
-      repeatEdgePixels: true,
     });
+    expect(filters[1]).toMatchObject({
+      resources: {
+        mirroredBlurUniforms: {
+          uniforms: {
+            uStrength: 4,
+            uRadius: 12,
+            uDirectionX: 0,
+            uDirectionY: 1,
+          },
+        },
+      },
+    });
+    expectUniformGroupBinding(filters[0], "mirroredBlurUniforms");
+    expect(getGpuFragmentSource(filters[0])).toContain("fn mirroredCoord");
+  });
+
+  it("samples strong mirrored blur densely to avoid sampling ripples", () => {
+    const values = createEmptyPixiFilterValues();
+    values.blur.enabled = true;
+    values.blur.strength = 18;
+
+    const filters = filterFactory.createPixiFilters(values);
+
+    expect(filters).toHaveLength(2);
+    for (const filter of filters) {
+      expect(filter).toMatchObject({
+        resources: {
+          mirroredBlurUniforms: {
+            uniforms: {
+              uStrength: 18,
+              uRadius: 54,
+            },
+          },
+        },
+      });
+    }
+    expect(getGpuFragmentSource(filters[0])).toContain("for (var i: i32 = -MAX_RADIUS");
   });
 
   it("binds grain uniforms with the same name used by the WGSL program", () => {
