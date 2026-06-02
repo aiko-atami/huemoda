@@ -12,6 +12,7 @@ dist
 dist-ssr
 styled-system
 *.local
+*.local.*
 
 # Editor directories and files
 .qoder
