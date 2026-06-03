@@ -777,7 +777,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
         min: 0,
         max: 5,
         step: 0.1,
-        defaultValue: 1,
+        defaultValue: 3,
         unit: "%",
       },
       {
@@ -787,7 +787,7 @@ export const FILTER_DEFINITIONS: readonly FilterDefinition[] = [
         min: 0,
         max: 100,
         step: 1,
-        defaultValue: 50,
+        defaultValue: 70,
         unit: "%",
       },
       {

@@ -16,7 +16,7 @@ import { defaultGlVertex, defaultWgslVertex } from "./shaderUtils";
 //    4. Accumulate samples at evenly-spaced (jittered) angles within ±blurAmount/2°.
 //    5. Average the samples into a blurred result.
 //    6. Blend blurred ↔ original using: intensity × falloff, where falloff
-//       fades smoothly to zero at the `size` radius boundary (UV-space).
+//       fades smoothly to zero at the `size` radius boundary (aspect-corrected image space).
 //
 const glFragment = `#version 300 es
 precision highp float;
@@ -57,11 +57,11 @@ void main(void) {
     float dist  = length(delta);
     float angle = atan(delta.y, delta.x);
 
-    // UV-space distance for the size falloff.
-    float uvDist = length(uv - centerUV);
+    // Use the same aspect-corrected radius as the sampling path so the
+    // affected area remains a true circle on rectangular images.
     // Blur grows from the edges inward: uSize=0 → no blur, uSize=1 → full image.
     float innerRadius = 1.0 - uSize;
-    float falloff = smoothstep(innerRadius, innerRadius + 0.08, uvDist);
+    float falloff = smoothstep(innerRadius, innerRadius + 0.08, dist);
 
     float halfBlur = uBlurAmount * PI / 360.0;
 
@@ -141,11 +141,11 @@ fn mainFragment(
   let dist  = length(delta);
   let angle = atan2(delta.y, delta.x);
 
-  // UV-space distance for the size falloff.
+  // Use the same aspect-corrected radius as the sampling path so the
+  // affected area remains a true circle on rectangular images.
   // Blur grows from the edges inward: uSize=0 → no blur, uSize=1 → full image.
-  let uvDist      = length(uv - centerUV);
   let innerRadius = 1.0 - spinBlurUniforms.uSize;
-  let falloff     = smoothstep(innerRadius, innerRadius + 0.08, uvDist);
+  let falloff     = smoothstep(innerRadius, innerRadius + 0.08, dist);
 
   let halfBlur = spinBlurUniforms.uBlurAmount * PI / 360.0;
 
@@ -191,9 +191,8 @@ export type SpinBlurOptions = {
   /** Spin center Y in pixel coordinates. Default 0 */
   positionY?: number;
   /**
-   * Radius of the affected area in UV space [0, 1].  The blur fades
-   * smoothly to zero at this radius.  A value of 0.5 reaches the nearest
-   * image edge when the center is at (0.5, 0.5).  Default 0.5
+   * Radius of the affected area in aspect-corrected image space [0, 1].
+   * The blur fades smoothly to zero at this radius. Default 0.5
    */
   size?: number;
 };

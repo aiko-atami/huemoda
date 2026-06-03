@@ -213,10 +213,10 @@ describe("filter chain model", () => {
     expect(state.spinBlur.added).toBe(false);
     expect(state.spinBlur.enabled).toBe(false);
     expect(state.spinBlur.parameters.intensity).toBe(0.8);
-    expect(state.spinBlur.parameters.blurAmount).toBe(1);
+    expect(state.spinBlur.parameters.blurAmount).toBe(3);
     expect(state.spinBlur.parameters.positionX).toBe(50);
     expect(state.spinBlur.parameters.positionY).toBe(50);
-    expect(state.spinBlur.parameters.size).toBe(50);
+    expect(state.spinBlur.parameters.size).toBe(70);
   });
 
   it("converts spin blur amount from % of rotation to degrees for the shader", () => {
