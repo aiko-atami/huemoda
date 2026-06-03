@@ -42,7 +42,7 @@ jobs:
         run: pnpm exec tsgo -b
 
       - name: Build
-        run: pnpm exec vp build --base=${{ steps.pages.outputs.base_path }}/
+        run: pnpm exec vp build --base=/
         env:
           NODE_ENV: production
 
