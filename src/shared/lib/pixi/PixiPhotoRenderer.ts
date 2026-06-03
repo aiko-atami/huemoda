@@ -117,11 +117,19 @@ export class PixiPhotoRenderer {
   }
 
   wheelZoom(deltaY: number, cx: number, cy: number): void {
+    this.zoomAt(deltaY < 0 ? 1.1 : 1 / 1.1, cx, cy);
+  }
+
+  /**
+   * Scale the viewport by an arbitrary `factor` around the focal point
+   * (`cx`, `cy`) in host-relative pixels. Used by both wheel zoom (fixed factor
+   * per tick) and pinch zoom (continuous factor from finger distance ratio).
+   */
+  zoomAt(factor: number, cx: number, cy: number): void {
     if (this.displaySprite === null) {
       return;
     }
 
-    const factor = deltaY < 0 ? 1.1 : 1 / 1.1;
     const oldZoom = this.viewport.scale.x;
     const newZoom = Math.max(0.5, Math.min(10, oldZoom * factor));
 
