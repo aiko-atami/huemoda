@@ -3,7 +3,7 @@ import type { LoadedImage } from "../../entities/image";
 import { $loadedImage, imageCleared } from "../../entities/image";
 import { buildExportFilename } from "../../shared/lib/exportFilename";
 import { downloadBlob } from "../../shared/lib/download";
-import type { PixiPhotoRenderer } from "../../shared/lib/pixi";
+import type { PixiPhotoRenderer } from "../../shared/lib/pixi/PixiPhotoRenderer";
 import type { ExportMimeType } from "../../shared/lib/pixi/exportTypes";
 
 // ---------------------------------------------------------------------------

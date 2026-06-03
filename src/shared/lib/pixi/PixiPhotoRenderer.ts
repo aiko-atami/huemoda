@@ -40,6 +40,7 @@ export class PixiPhotoRenderer {
   private halationBaseTexture: RenderTexture | null = null;
   private halationSignalTexture: RenderTexture | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private rafId: number | null = null;
   private disposed = false;
   private initialized = false;
   private loadToken = 0;
@@ -84,7 +85,7 @@ export class PixiPhotoRenderer {
     this.clearSprite();
 
     if (objectUrl === null) {
-      this.render();
+      this.requestRender();
       return;
     }
 
@@ -95,7 +96,7 @@ export class PixiPhotoRenderer {
     } catch {
       if (!this.disposed && token === this.loadToken) {
         this.clearSprite();
-        this.render();
+        this.requestRender();
       }
 
       return;
@@ -113,7 +114,7 @@ export class PixiPhotoRenderer {
     this.applyFilters();
     this.resetViewport();
     this.layoutSprite();
-    this.render();
+    this.requestRender();
   }
 
   wheelZoom(deltaY: number, cx: number, cy: number): void {
@@ -141,7 +142,7 @@ export class PixiPhotoRenderer {
     this.viewport.y = cy - ((cy - this.viewport.y) / oldZoom) * newZoom;
     this.viewport.scale.set(newZoom);
     this.clampViewport();
-    this.render();
+    this.requestRender();
   }
 
   pan(dx: number, dy: number): void {
@@ -152,12 +153,12 @@ export class PixiPhotoRenderer {
     this.viewport.x += dx;
     this.viewport.y += dy;
     this.clampViewport();
-    this.render();
+    this.requestRender();
   }
 
   resetView(): void {
     this.resetViewport();
-    this.render();
+    this.requestRender();
   }
 
   setFilterValues(filterValues: PixiFilterValues): void {
@@ -165,12 +166,12 @@ export class PixiPhotoRenderer {
 
     if (this.initialized) {
       this.applyFilters();
-      this.render();
+      this.requestRender();
     } else {
       void this.readyPromise.then(() => {
         if (!this.disposed) {
           this.applyFilters();
-          this.render();
+          this.requestRender();
         }
       });
     }
@@ -207,6 +208,12 @@ export class PixiPhotoRenderer {
     }
 
     this.disposed = true;
+
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
     this.clearSprite();
@@ -231,6 +238,7 @@ export class PixiPhotoRenderer {
       resolution: Math.min(window.devicePixelRatio || 1, 2),
       preference: ["webgpu", "webgl"],
       powerPreference: "high-performance",
+      autoStart: false,
     });
 
     await this.loadLutTextures();
@@ -262,7 +270,7 @@ export class PixiPhotoRenderer {
 
     this.app.renderer.resize(width, height);
     this.layoutSprite();
-    this.render();
+    this.requestRender();
   }
 
   private getHostSize(): { height: number; width: number } {
@@ -443,8 +451,30 @@ export class PixiPhotoRenderer {
     this.filteredTexture = null;
   }
 
-  private render(): void {
+  /**
+   * Render immediately on the current call stack. Use only when the result must
+   * be readable synchronously right after (e.g. export pixel extraction).
+   * Interactive paths should use `requestRender()` to coalesce to one render
+   * per animation frame.
+   */
+  private renderNow(): void {
     this.app?.renderer.render({ container: this.app.stage });
+  }
+
+  /**
+   * Schedule a single render on the next animation frame. Multiple calls within
+   * the same frame collapse into one GPU render — pan + zoom from a single pinch
+   * event, or a burst of filter updates from a slider drag, render only once.
+   */
+  private requestRender(): void {
+    if (this.rafId !== null || this.app === null) {
+      return;
+    }
+
+    this.rafId = requestAnimationFrame(() => {
+      this.rafId = null;
+      this.renderNow();
+    });
   }
 
   private destroyApp(): void {

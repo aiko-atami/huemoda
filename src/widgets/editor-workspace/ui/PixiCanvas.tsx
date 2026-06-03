@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LoadedImage } from "../../../entities/image";
-import { PixiPhotoRenderer } from "../../../shared/lib/pixi";
-import type { PixiFilterValues } from "../../../shared/lib/pixi";
+import { PixiPhotoRenderer } from "../../../shared/lib/pixi/PixiPhotoRenderer";
+import type { PixiFilterValues } from "../../../shared/lib/pixi/filterTypes";
 
 type PixiCanvasProps = {
   image: LoadedImage | null;

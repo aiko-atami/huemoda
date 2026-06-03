@@ -9,7 +9,10 @@ import { ImageUploadButton } from "../../../features/image-upload";
 import { FilterPanel, FilterSheet } from "../../../features/filter-controls";
 import { Button } from "../../../shared/ui";
 import { useIsCompact } from "../../../shared/lib/useBreakpoint";
-import type { PixiPhotoRenderer, PixiRendererBackend } from "../../../shared/lib/pixi";
+import type {
+  PixiPhotoRenderer,
+  PixiRendererBackend,
+} from "../../../shared/lib/pixi/PixiPhotoRenderer";
 import {
   $exportError,
   $exportFormat,
