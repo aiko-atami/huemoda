@@ -301,17 +301,19 @@ button {
   width: 100%;
 }
 
+/* Sits above the compact bottom sheet (z-index 30/31) so the add-filter
+   picker opened from inside the sheet stacks on top, not behind it. */
 .filter-picker__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 40;
   background: rgba(0, 0, 0, 0.18);
 }
 
 .filter-picker__viewport {
   position: fixed;
   inset: 0;
-  z-index: 21;
+  z-index: 41;
   display: flex;
   justify-content: flex-end;
   pointer-events: none;
@@ -446,6 +448,109 @@ button {
 }
 
 .filter-section__remove:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Compact filter controls: floating trigger + bottom sheet */
+.filter-sheet__trigger {
+  position: absolute;
+  z-index: 15;
+  right: 16px;
+  bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-lg);
+  background: var(--surface-high);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.filter-sheet__trigger:hover {
+  background: var(--surface-highest);
+  border-color: var(--outline-strong);
+}
+
+.filter-sheet__trigger:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.filter-sheet__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.filter-sheet {
+  position: fixed;
+  z-index: 31;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-height: 85svh;
+  border-top: 1px solid var(--outline);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.filter-sheet .filter-list {
+  overflow: auto;
+}
+
+.filter-sheet__grabber {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  left: 50%;
+  width: 36px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--outline);
+  transform: translateX(-50%);
+}
+
+.filter-sheet__close {
+  position: absolute;
+  z-index: 1;
+  top: 16px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.filter-sheet__close:hover {
+  background: var(--surface-highest);
+  border-color: var(--outline-strong);
+}
+
+.filter-sheet__close:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
@@ -692,10 +797,6 @@ button {
 
   .filter-picker {
     width: min(420px, 100vw);
-  }
-
-  .filter-list {
-    overflow: visible;
   }
 }
 

@@ -23,7 +23,13 @@ import {
 import { $canExportImage } from "../../../entities/image";
 import { Button, ListControl, PointPicker, Slider, Toggle } from "../../../shared/ui";
 
-export function FilterPanel() {
+/**
+ * The filter-stack controls (header, list, footer, add-filter picker), free of
+ * any outer container. Rendered inside the docked {@link FilterPanel} on desktop
+ * and inside {@link FilterSheet} on compact viewports — one controls
+ * implementation, two presentations.
+ */
+export function FilterPanelBody() {
   const [openFilterId, setOpenFilterId] = useState<FilterId | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const {
@@ -55,176 +61,179 @@ export function FilterPanel() {
   const availableFilterDefinitions = FILTER_DEFINITIONS.filter((def) => !filterChain[def.id].added);
 
   return (
-    <aside className="filter-panel" aria-label="Filter controls">
-      <Dialog.Root open={showPicker} onOpenChange={setShowPicker}>
-        <div className="panel-header">
-          <div>
-            <p className="panel-header__eyebrow">Effects</p>
-            <h2>Filter Stack</h2>
-          </div>
-          {addedFilterDefinitions.length > 0 ? (
+    <Dialog.Root open={showPicker} onOpenChange={setShowPicker}>
+      <div className="panel-header">
+        <div>
+          <p className="panel-header__eyebrow">Effects</p>
+          <h2>Filter Stack</h2>
+        </div>
+        {addedFilterDefinitions.length > 0 ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            icon={<Plus size={14} />}
+            onClick={() => setShowPicker(true)}
+            disabled={!hasImage || availableFilterDefinitions.length === 0}
+          >
+            Add filter
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="filter-list">
+        {addedFilterDefinitions.length === 0 ? (
+          <div className="filter-list__empty">
+            <SlidersHorizontal size={32} aria-hidden="true" />
+            <p>No filters added yet</p>
             <Button
               type="button"
               variant="secondary"
               size="sm"
               icon={<Plus size={14} />}
               onClick={() => setShowPicker(true)}
-              disabled={!hasImage || availableFilterDefinitions.length === 0}
+              disabled={!hasImage}
             >
               Add filter
             </Button>
-          ) : null}
+          </div>
+        ) : (
+          addedFilterDefinitions.map((definition) => {
+            const filterState = filterChain[definition.id];
+            const isOpen = openFilterId === definition.id;
+
+            return (
+              <section className="filter-section" key={definition.id}>
+                <div className="filter-section__header">
+                  <button
+                    type="button"
+                    className="filter-section__toggle"
+                    aria-expanded={isOpen}
+                    onClick={() => setOpenFilterId(isOpen ? null : definition.id)}
+                  >
+                    <SlidersHorizontal size={16} aria-hidden="true" />
+                    <span>
+                      <strong>{definition.title}</strong>
+                      <small>{definition.description}</small>
+                    </span>
+                    <ChevronDown className={isOpen ? "is-open" : ""} size={16} aria-hidden="true" />
+                  </button>
+                  <Toggle
+                    label={`${definition.title} enabled`}
+                    pressed={filterState.enabled}
+                    onPressedChange={(_pressed) => toggleFilter(definition.id)}
+                  />
+                  <button
+                    type="button"
+                    className="filter-section__remove"
+                    aria-label={`Remove ${definition.title} filter`}
+                    onClick={() => {
+                      if (openFilterId === definition.id) setOpenFilterId(null);
+                      removeFilter(definition.id);
+                    }}
+                  >
+                    <X size={14} aria-hidden="true" />
+                  </button>
+                </div>
+
+                {isOpen ? (
+                  <div className="filter-section__body">
+                    {definition.parameters.map((parameter) =>
+                      renderParameterControl({
+                        disabled: !filterState.enabled,
+                        filterId: definition.id,
+                        onChange: setParameter,
+                        onPointChange: setPoint,
+                        onPreview:
+                          definition.id === "lut" && parameter.id === "presetId"
+                            ? previewLutPreset
+                            : undefined,
+                        parameter,
+                        parameters: filterState.parameters,
+                      }),
+                    )}
+                  </div>
+                ) : null}
+              </section>
+            );
+          })
+        )}
+      </div>
+
+      {addedFilterDefinitions.length > 0 ? (
+        <div className="panel-footer">
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            className="panel-footer__reset"
+            onClick={resetFilters}
+            disabled={!hasActiveFilters}
+          >
+            Reset all
+          </Button>
         </div>
+      ) : null}
 
-        <div className="filter-list">
-          {addedFilterDefinitions.length === 0 ? (
-            <div className="filter-list__empty">
-              <SlidersHorizontal size={32} aria-hidden="true" />
-              <p>No filters added yet</p>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                icon={<Plus size={14} />}
-                onClick={() => setShowPicker(true)}
-                disabled={!hasImage}
-              >
-                Add filter
-              </Button>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="filter-picker__backdrop" />
+        <Dialog.Viewport className="filter-picker__viewport">
+          <Dialog.Popup className="filter-picker" aria-label="Choose a filter to add">
+            <div className="filter-picker__header">
+              <Dialog.Title className="filter-picker__title">Add filter</Dialog.Title>
+              <Dialog.Close className="filter-picker__close" aria-label="Close filter picker">
+                <X size={16} aria-hidden="true" />
+              </Dialog.Close>
             </div>
-          ) : (
-            addedFilterDefinitions.map((definition) => {
-              const filterState = filterChain[definition.id];
-              const isOpen = openFilterId === definition.id;
-
-              return (
-                <section className="filter-section" key={definition.id}>
-                  <div className="filter-section__header">
+            <div className="filter-picker__list">
+              {FILTER_DEFINITIONS.map((definition) => {
+                const isAdded = filterChain[definition.id].added;
+                return (
+                  <div
+                    className={`filter-picker__item${isAdded ? " is-added" : ""}`}
+                    key={definition.id}
+                  >
+                    <div className="filter-picker__item-info">
+                      <strong>{definition.title}</strong>
+                      <small>{definition.description}</small>
+                    </div>
                     <button
                       type="button"
-                      className="filter-section__toggle"
-                      aria-expanded={isOpen}
-                      onClick={() => setOpenFilterId(isOpen ? null : definition.id)}
-                    >
-                      <SlidersHorizontal size={16} aria-hidden="true" />
-                      <span>
-                        <strong>{definition.title}</strong>
-                        <small>{definition.description}</small>
-                      </span>
-                      <ChevronDown
-                        className={isOpen ? "is-open" : ""}
-                        size={16}
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <Toggle
-                      label={`${definition.title} enabled`}
-                      pressed={filterState.enabled}
-                      onPressedChange={(_pressed) => toggleFilter(definition.id)}
-                    />
-                    <button
-                      type="button"
-                      className="filter-section__remove"
-                      aria-label={`Remove ${definition.title} filter`}
+                      className="filter-picker__add"
+                      aria-label={
+                        isAdded ? `${definition.title} already added` : `Add ${definition.title}`
+                      }
+                      disabled={isAdded}
                       onClick={() => {
-                        if (openFilterId === definition.id) setOpenFilterId(null);
-                        removeFilter(definition.id);
+                        addFilter(definition.id);
+                        setOpenFilterId(definition.id);
+                        setShowPicker(false);
                       }}
                     >
-                      <X size={14} aria-hidden="true" />
+                      {isAdded ? (
+                        "Added"
+                      ) : (
+                        <>
+                          <Plus size={13} aria-hidden="true" /> Add
+                        </>
+                      )}
                     </button>
                   </div>
+                );
+              })}
+            </div>
+          </Dialog.Popup>
+        </Dialog.Viewport>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
 
-                  {isOpen ? (
-                    <div className="filter-section__body">
-                      {definition.parameters.map((parameter) =>
-                        renderParameterControl({
-                          disabled: !filterState.enabled,
-                          filterId: definition.id,
-                          onChange: setParameter,
-                          onPointChange: setPoint,
-                          onPreview:
-                            definition.id === "lut" && parameter.id === "presetId"
-                              ? previewLutPreset
-                              : undefined,
-                          parameter,
-                          parameters: filterState.parameters,
-                        }),
-                      )}
-                    </div>
-                  ) : null}
-                </section>
-              );
-            })
-          )}
-        </div>
-
-        {addedFilterDefinitions.length > 0 ? (
-          <div className="panel-footer">
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              className="panel-footer__reset"
-              onClick={resetFilters}
-              disabled={!hasActiveFilters}
-            >
-              Reset all
-            </Button>
-          </div>
-        ) : null}
-
-        <Dialog.Portal>
-          <Dialog.Backdrop className="filter-picker__backdrop" />
-          <Dialog.Viewport className="filter-picker__viewport">
-            <Dialog.Popup className="filter-picker" aria-label="Choose a filter to add">
-              <div className="filter-picker__header">
-                <Dialog.Title className="filter-picker__title">Add filter</Dialog.Title>
-                <Dialog.Close className="filter-picker__close" aria-label="Close filter picker">
-                  <X size={16} aria-hidden="true" />
-                </Dialog.Close>
-              </div>
-              <div className="filter-picker__list">
-                {FILTER_DEFINITIONS.map((definition) => {
-                  const isAdded = filterChain[definition.id].added;
-                  return (
-                    <div
-                      className={`filter-picker__item${isAdded ? " is-added" : ""}`}
-                      key={definition.id}
-                    >
-                      <div className="filter-picker__item-info">
-                        <strong>{definition.title}</strong>
-                        <small>{definition.description}</small>
-                      </div>
-                      <button
-                        type="button"
-                        className="filter-picker__add"
-                        aria-label={
-                          isAdded ? `${definition.title} already added` : `Add ${definition.title}`
-                        }
-                        disabled={isAdded}
-                        onClick={() => {
-                          addFilter(definition.id);
-                          setOpenFilterId(definition.id);
-                          setShowPicker(false);
-                        }}
-                      >
-                        {isAdded ? (
-                          "Added"
-                        ) : (
-                          <>
-                            <Plus size={13} aria-hidden="true" /> Add
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </Dialog.Popup>
-          </Dialog.Viewport>
-        </Dialog.Portal>
-      </Dialog.Root>
+/** Docked side-panel presentation of the filter controls (desktop layout). */
+export function FilterPanel() {
+  return (
+    <aside className="filter-panel" aria-label="Filter controls">
+      <FilterPanelBody />
     </aside>
   );
 }

@@ -1,4 +1,5 @@
 import { defineConfig } from "@pandacss/dev";
+import { BREAKPOINTS } from "./src/shared/lib/breakpoints";
 
 export default defineConfig({
   preflight: false,
@@ -24,6 +25,13 @@ export default defineConfig({
 
   theme: {
     tokens: {},
+    // Aligned with the `@media` queries in src/app/styles/index.css via the
+    // shared BREAKPOINTS constants. Panda breakpoints are min-width based.
+    breakpoints: {
+      sm: `${BREAKPOINTS.sm}px`,
+      md: `${BREAKPOINTS.md}px`,
+      lg: `${BREAKPOINTS.lg}px`,
+    },
     extend: {
       semanticTokens: {
         colors: {

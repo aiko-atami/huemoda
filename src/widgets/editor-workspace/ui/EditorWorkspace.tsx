@@ -6,8 +6,9 @@ import { $loadedImage, formatFileSize, imageCleared } from "../../../entities/im
 import { $pixiFilterValues } from "../../../entities/filter-chain";
 import { ExportButton } from "../../../features/export-image";
 import { ImageUploadButton } from "../../../features/image-upload";
-import { FilterPanel } from "../../../features/filter-controls";
+import { FilterPanel, FilterSheet } from "../../../features/filter-controls";
 import { Button } from "../../../shared/ui";
+import { useIsCompact } from "../../../shared/lib/useBreakpoint";
 import type { PixiPhotoRenderer, PixiRendererBackend } from "../../../shared/lib/pixi";
 import {
   $exportError,
@@ -52,6 +53,7 @@ const PixiCanvas = lazy(async () => {
 });
 
 export function EditorWorkspace() {
+  const isCompact = useIsCompact();
   const [rendererBackend, setRendererBackend] = useState<PixiRendererBackend | "initializing">(
     "initializing",
   );
@@ -96,7 +98,10 @@ export function EditorWorkspace() {
   }, [clearImage]);
 
   return (
-    <section className="editor-shell" aria-label="HueModa photo editor">
+    <section
+      className={`editor-shell${isCompact ? " editor-shell--compact" : ""}`}
+      aria-label="HueModa photo editor"
+    >
       <section className="editor-main">
         <header className="editor-topbar">
           <div className="editor-title">
@@ -155,10 +160,11 @@ export function EditorWorkspace() {
               <ImageUploadButton variant="empty" />
             </div>
           ) : null}
+          {isCompact ? <FilterSheet /> : null}
         </section>
       </section>
 
-      <FilterPanel />
+      {isCompact ? null : <FilterPanel />}
     </section>
   );
 }
