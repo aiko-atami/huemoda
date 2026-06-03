@@ -1,6 +1,6 @@
 import { defineConfig } from "vite-plus";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import babel from "@rolldown/plugin-babel";
+import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
 
 // https://vite.dev/config/
@@ -135,5 +135,39 @@ export default defineConfig({
       typeCheck: true,
     },
   },
-  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  plugins: [
+    react(),
+    VitePWA({
+      includeAssets: [
+        "favicon.svg",
+        "pwa-192x192.png",
+        "pwa-512x512.png",
+        "apple-touch-icon-180x180.png",
+      ],
+      manifest: {
+        name: "HueModa",
+        short_name: "HueModa",
+        description: "HueModa is a photo editor.",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        theme_color: "#0f0c1b",
+        background_color: "#0f0c1b",
+        icons: [
+          { src: "pwa-64x64.png", sizes: "64x64", type: "image/png" },
+          { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },
+          {
+            src: "maskable-icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+      },
+    }),
+  ],
 });
