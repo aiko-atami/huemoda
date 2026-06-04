@@ -526,7 +526,10 @@ export function updateFilterUniforms(
   }
 }
 
-export function createHalationSignalFilters(values: PixiFilterValues["halation"]): {
+export function createHalationSignalFilters(
+  values: PixiFilterValues["halation"],
+  options?: { blurQuality?: number },
+): {
   extract: HalationExtractFilter;
   blur: KawaseBlurFilter;
 } {
@@ -538,7 +541,9 @@ export function createHalationSignalFilters(values: PixiFilterValues["halation"]
 
   const blur = new KawaseBlurFilter({
     strength: values.localDiffusion * 24 + values.globalDiffusion * 36,
-    quality: 5,
+    // Kawase quality controls the number of blur passes. The full quality (5) is
+    // reserved for settled/export bakes; callers may lower it for cheap previews.
+    quality: options?.blurQuality ?? 5,
   });
 
   return { extract, blur };

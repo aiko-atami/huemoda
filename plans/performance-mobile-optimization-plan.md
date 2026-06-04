@@ -5,9 +5,17 @@
 HueModa is a Pixi.js v8 photo editor (FSD + Effector + effector-react + Panda CSS).
 The performance-sensitive path is **live filter preview + canvas gestures on mobile**.
 
+> **Status (post-implementation):** all four PRs below are done. The headline fix
+> is **in-place uniform updates** (no per-tick shader-program recreation) plus rAF
+> render coalescing. An "interaction mode" cheap-preview was attempted and removed
+> because its preview/settle split caused a visible re-render on slider release;
+> the renderer now uses one identical bake path during a drag and on release. The
+> sections below keep the original problem statement for context and annotate each
+> item with what actually shipped.
+
 The architecture is fundamentally sound — rendering is on-demand (no continuous
 ticker), DPR is capped at 2, LUT textures are loaded once and cached. The real
-problem is **the cost and frequency of updates during interaction**:
+problem **was** the cost and frequency of updates during interaction:
 
 - A native range `Slider` (`src/shared/ui/Slider.tsx`) fires `onChange` on every
   tick (~60–120 Hz). There is **no throttle/debounce/sample** between the slider
@@ -79,7 +87,7 @@ File: `src/shared/lib/pixi/PixiPhotoRenderer.ts`
 
 ### P1 — In-place uniform updates (eliminate per-tick shader churn)
 
-**Status:** ✅ Done as first part of PR 2. `filterFactory` now exposes an enabled-set fingerprint, typed filter-handle registry, shared conversion helpers, `createPixiFilterChain()`, and `updateFilterUniforms()`. `PixiPhotoRenderer` stores the current fingerprint/handles and uses an in-place update fast path when the non-halation topology is unchanged; topology changes and any halation path still rebuild. The preview bake still refreshes synchronously after uniform updates; moving that bake into interaction-mode scheduling remains open. Validated with `vp check --fix`, `vp check`, `vp test`, and `vp build`.
+**Status:** ✅ Done in PR 2. `filterFactory` now exposes an enabled-set fingerprint, typed filter-handle registry, shared conversion helpers, `createPixiFilterChain()`, and `updateFilterUniforms()`. `PixiPhotoRenderer` stores the current fingerprint/handles and uses an in-place update fast path when the non-halation topology is unchanged; topology changes and any halation path still rebuild. The bake refreshes synchronously after the uniform write and `requestRender()` coalesces to one render per frame — this is the single render path for both an active drag and its release (no separate preview path), so it is what actually fixes the slider-lag. Validated with `vp check`, `vp test`, and `vp build`.
 
 **Goal:** during a slider drag where the enabled-filter set is unchanged, update
 uniforms on the existing filter instances instead of destroying + recreating the
@@ -112,9 +120,11 @@ Files: `src/shared/lib/pixi/PixiPhotoRenderer.ts`, `src/shared/lib/pixi/filterFa
    two instances and both expose `set strength`. Store both handles and update
    both. (If `strength` crosses the `> 0` gate, the fingerprint changes → rebuild.)
 5. **Non-halation bake:** after uniform update, the display still needs the baked
-   `filteredTexture` refreshed. Keep `updateFilteredTexture()` but make it part of
-   the scheduled frame (see "Interaction mode" below) so a drag does at most one
-   bake per frame, not one per event.
+   `filteredTexture` refreshed. `updateFilteredTexture()` runs synchronously after
+   the uniform write, then `requestRender()` coalesces to one GPU render per frame
+   (PR 0). A slider drag therefore does at most one bake per frame, not one per
+   event, and the **same** bake path runs during the drag and on release — so
+   releasing a slider produces no visible re-render.
 
 **Risk:** medium-low. The fingerprint must exactly track `createPixiFilters`'
 gating, or a stale instance shows wrong output — mitigate by deriving both from
@@ -123,46 +133,49 @@ correctness is unchanged.
 
 ---
 
-### P1 — Interaction mode: defer heavy work during active drags
+### P1 — Interaction mode: ❌ Tried and removed
 
-**Goal:** fast, cheap feedback while a control/gesture is active; full-quality
-settle on release.
+**Status:** ❌ Implemented in PR 2, then **reverted**. A `setInteracting(active)`
+mode showed a cheaper preview during drags (live chain on `displaySprite`, no bake;
+halation previewing its flat base chain) and settled via `applyFilters()` on
+release, driven by shared Effector events with a debounce + watchdog.
 
-Files: `src/shared/lib/pixi/PixiPhotoRenderer.ts`,
-`src/widgets/editor-workspace/ui/PixiCanvas.tsx`,
-`src/features/filter-controls/ui/*`, `src/shared/ui/Slider.tsx` + `PointPicker.tsx`
+In practice it caused exactly the regression it was meant to avoid: the **preview
+path and the settle path were visually different** (preview = filters over the
+full-res source texture at the canvas's AA; settle = a resolution-capped, separately
+AA'd render-to-texture bake), so releasing any slider produced a visible "jump"/
+re-render. Coordinate-dependent filters (`zoomBlur`, `spinBlur`, `lensFlare`)
+compounded it, since their centers/radii are computed from full-res image
+dimensions while `displaySprite` is downscaled to fit the canvas.
 
-1. Renderer gains `setInteracting(active: boolean)`:
-   - While `interacting === true`: skip the **halation 3-bake pipeline** and the
-     `updateFilteredTexture()` bake; render the live filter chain directly on
-     `sourceSprite` for preview (the chain is already attached). For halation,
-     show the most recent settled composite (or base preview) rather than
-     re-baking three textures per frame.
-   - On `setInteracting(false)`: run the full `applyFilters()` once (rebuilds
-     halation, refreshes `filteredTexture`) and `requestRender()`.
-2. Drive the flag from the UI:
-   - `Slider`: add optional `onInteractStart`/`onInteractEnd` wired to
-     `pointerdown`/`pointerup`+`pointercancel` (and `keydown`/`keyup` for keyboard
-     stepping). Bubble up to a model event.
-   - `PointPicker`: it already captures the pointer — fire interact start on
-     `pointerdown`, end on `pointerup`/cancel.
-   - `PixiCanvas` gestures: set interacting on first `pointerdown`, clear when the
-     last pointer lifts (`pointers.size === 0`).
-3. Represent this as a **model event** (per CLAUDE.md: lifecycle belongs in
-   Effector, not ad-hoc React). Add `interactionStarted` / `interactionEnded` to
-   the editor-workspace model and `sample` them onto an effect/imperative bridge
-   that calls `renderer.setInteracting(...)`. A short trailing debounce
-   (~120 ms) on "ended" absorbs rapid pointerup/pointerdown sequences.
+It also turned out to be unnecessary: the **in-place uniform update** above already
+removes the only real cost (per-tick shader-program recreation), and PR 0 rAF
+coalescing already caps drags/gestures at one render per frame. So the mode was
+deleted entirely — `setInteracting`, the `interactionStarted`/`interactionEnded`
+events, the `src/shared/model` slice, the editor-workspace bridge/debounce/watchdog,
+and the `onInteractStart`/`onInteractEnd` props on `Slider`/`PointPicker`.
 
-**Risk:** medium. Must guarantee `interacting` always resets (wire `pointercancel`,
-blur, and unmount). Add a safety timeout that force-clears interaction after N ms
-of no events.
+**Decision:** during a drag and on release the renderer runs **one identical path**
+(in-place uniforms → single capped bake → coalesced render). No preview/settle split,
+no halation drop on pan. The `Slider` rAF-throttle and `React.memo` work below were
+kept; only the texture/chain-swapping preview mode was removed.
 
 ---
 
 ### P1 — UI → state coalescing + control memoization
 
-**Goal:** stop ~50 controls re-rendering and stop flooding Effector at 60–120 Hz.
+**Status:** ✅ Partially done in PR 2. The slider keeps its `<input>` visually
+immediate via local draft state while rAF-throttling the store dispatch to one call
+per frame, flushing the exact final value synchronously on pointer/key release (a
+private `isDraggingRef` set on `pointerdown`/`keydown` and cleared on `pointerup`/
+`pointercancel`/`keyup`/`blur` — no external interaction events; that lifecycle was
+removed with interaction mode). `Slider`, `PointPicker`, and `ListControl` are
+wrapped in `React.memo`, but `FilterPanelBody` still passes inline callbacks, so
+the memoization benefit is limited; full control-level render isolation remains
+future work.
+
+**Goal:** stop flooding Effector at 60–120 Hz; reduce control re-renders where
+props stay stable. Full isolation of ~50 controls is not yet complete.
 
 Files: `src/shared/ui/Slider.tsx`, `src/shared/ui/PointPicker.tsx`,
 `src/features/filter-controls/ui/FilterPanelBody*`, optionally
@@ -189,6 +202,18 @@ aggressive — the input value itself should update every event; only the
 ---
 
 ### P2 — Adaptive quality profiles (mobile / desktop / export)
+
+**Status:** ✅ Done in PR 3. `src/shared/lib/pixi/qualityProfile.ts` resolves a
+`mobile`/`desktop` profile from coarse-pointer + `hardwareConcurrency` and exposes
+`previewResolutionScale()`. The renderer caps the baked preview texture's longest
+side (mobile 1600, desktop 2560); bakes always use `antialias: true` (the
+"AA off during interaction" idea was dropped along with interaction mode, since a
+drag and its release now share one bake path and differing AA would re-introduce a
+visible jump). The halation Kawase blur drops to quality 3 for the mobile bake.
+**Export always re-bakes the full pipeline at `resolution: 1`** inside an
+`exporting` guard so a preview-capped texture can never leak into the export — the
+quality counterpart to the model-level export guard. Profile/scale logic is unit
+tested in `qualityProfile.test.ts`.
 
 **Goal:** cut shader cost on low-end devices for the live preview while keeping
 export pristine.
@@ -225,6 +250,16 @@ parity between preview-capped and export output.
 
 ### P2 — LUT lazy loading + PWA cache
 
+**Status:** ✅ Done in PR 4. `initialize()` no longer awaits the bulk LUT load; the
+editor is interactive as soon as the Pixi app is up. `ensureLutLoaded(presetId)`
+loads a single preset on demand (deduped via an in-flight set) and, when the
+texture resolves for the still-active preset, re-applies filters + schedules a
+render so the LUT appears without flicker. The default preset is warmed in the
+background after ready. `setFilterValues` triggers the load whenever LUT is enabled
+(so a previewed preset is fetched too). Workbox now excludes `**/luts/**` from
+precache and serves `/luts/*` via a `CacheFirst` runtime route (`lut-textures`).
+Build confirmed: 0 LUT PNGs in the precache manifest, runtime route present.
+
 **Goal:** don't block renderer-ready on ~7 MB of LUT PNGs (15 files, several
 600–800 KB each).
 
@@ -255,7 +290,12 @@ previous output until the new LUT arrives, then swap.
 
 Files: editor workspace + features importing from `shared/lib/pixi`
 
-**Status:** partially done in PR 1. ✅ P3.1 barrel hygiene for editor workspace is complete: type-only imports and the PixiCanvas runtime import now target concrete modules instead of the heavy `shared/lib/pixi` barrel. ⏳ Dev-only instrumentation remains open.
+**Status:** ✅ Done. P3.1 barrel hygiene completed in PR 1. P3.2 dev-only
+instrumentation added in PR 4 follow-up: `src/shared/lib/pixi/perfLog.ts` provides
+`perfLog`/`perfTime`/`perfTimeAsync`, gated on `import.meta.env.DEV` plus a runtime
+opt-in (`localStorage["huemoda:perf"] = "1"` or `window.__HUEMODA_PERF__`), so it is
+zero-cost and tree-shaken in production. Instrumented: Pixi init, image decode,
+image upload + preview dimensions, LUT load, filtered-texture bake, and export.
 
 1. Audit imports of `shared/lib/pixi` in `EditorWorkspace.tsx`, `PixiCanvas.tsx`,
    features, and the workspace model. Anything that only needs **types**
@@ -279,16 +319,29 @@ it, cancel on destroy, disable Pixi auto ticker via `autoStart: false`, convert
 type-only barrel imports to direct `import type`. Behavior-preserving.
 Validated with `vp check`, `vp lint`, `vp test`, and `vp build`.
 
-**PR 2 — In-place uniform updates + interaction mode + UI coalescing (P1). — 🟡 In progress**
-✅ Fingerprint + `updateFilterUniforms` + filter-handle registry are implemented and integrated into `PixiPhotoRenderer` for non-halation same-topology updates. ⏳ Remaining: `setInteracting` driven by Effector `interactionStarted/Ended`, moving preview bake work into interaction-mode scheduling, `React.memo` on leaf controls, and rAF-throttled slider dispatch.
+**PR 2 — In-place uniform updates + UI coalescing (P1). — ✅ Done**
+✅ Fingerprint + `updateFilterUniforms` + filter-handle registry integrated for
+non-halation same-topology updates (the actual lag fix — no per-tick shader churn).
+✅ rAF-throttled slider dispatch with exact flush on release. ⚠️
+`React.memo` wrappers exist on `Slider`/`PointPicker`/`ListControl`, but inline
+callbacks from `FilterPanelBody` mean full control render isolation was not
+completed in this PR.
+❌ Interaction mode (`setInteracting` + shared `interactionStarted/Ended` events +
+bridge/debounce/watchdog + `onInteract*` props) was built here, then **reverted** —
+its preview/settle split caused a visible re-render on slider release. See the
+"Interaction mode: tried and removed" section above.
 
-**PR 3 — Quality profiles + preview resolution cap (P2 quality).**
-Profile resolution, preview-bake size cap, per-filter preview caps, AA off during
-interaction. Export stays full quality. Visual-parity check.
+**PR 3 — Quality profiles + preview resolution cap (P2 quality). — ✅ Done**
+Profile resolution (`qualityProfile.ts`), preview-bake longest-side cap, halation
+Kawase quality cap for mobile. Bakes always use `antialias: true` (no AA toggle —
+the per-interaction AA idea died with interaction mode). Export re-bakes full
+quality under an `exporting` guard. Unit tests added.
 
-**PR 4 — LUT lazy load + PWA runtime cache (P2 LUT).**
-Unblock renderer-ready, on-demand LUT load with re-render-on-arrival, Workbox
-runtime cache for `/luts/*.png`.
+**PR 4 — LUT lazy load + PWA runtime cache (P2 LUT) + P3.2 telemetry. — ✅ Done**
+Renderer-ready no longer blocks on LUTs; on-demand `ensureLutLoaded` with
+re-render-on-arrival + background warm of the default preset; Workbox `CacheFirst`
+runtime cache for `/luts/*` with `**/luts/**` excluded from precache. Dev-only
+`perfLog` instrumentation added (zero-cost in production).
 
 ---
 
@@ -310,9 +363,10 @@ runtime cache for `/luts/*.png`.
 - **Manual / device:**
   - DevTools mobile emulation + CPU 4–6× throttle: drag the Grain `amount` and
     Blur `strength` sliders; confirm in the Performance panel **one render per
-    frame** and no per-event shader-program creation.
-  - Enable halation, drag a halation slider: confirm cheap preview during drag,
-    full composite on release.
+    frame**, no per-event shader-program creation, and **no visible re-render when
+    the slider is released** (drag and release share one bake path).
+  - Enable halation, drag a halation slider: full rebuild per frame is expected
+    (halation is multi-pass and always rebuilds); confirm release does not jump.
   - Pinch-zoom/pan on a touch device or emulation: one render per frame, no
     double-render per pointer event.
   - Cold load: editor canvas becomes interactive before all LUTs download; pick a
@@ -324,10 +378,10 @@ runtime cache for `/luts/*.png`.
 
 ## Acceptance criteria
 
-- Slider drag and pinch/pan produce **≤ 1 preview render per animation frame** and
-  **no shader-program recreation** when the enabled-filter set is unchanged.
-- Halation editing is responsive: cheap preview during interaction, full-quality
-  composite on settle.
+- Slider drag and pinch/pan produce **≤ 1 render per animation frame** and
+  **no shader-program recreation** when the enabled-filter set is unchanged, and
+  **no visible re-render on release** (one identical bake path during drag and on
+  settle — no preview/settle split).
 - ~50 filter controls no longer all re-render on a single parameter change.
 - Editor becomes interactive without downloading all LUTs; presets load and cache
   on demand and render once available.

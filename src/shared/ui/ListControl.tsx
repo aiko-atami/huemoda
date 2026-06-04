@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from "react";
+import { memo, useEffect, useId, useRef } from "react";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { Radio } from "@base-ui/react/radio";
 import { ScrollArea } from "@base-ui/react/scroll-area";
@@ -123,7 +123,7 @@ const indicatorClass = css({
   },
 });
 
-export function ListControl({
+function ListControlComponent({
   disabled = false,
   label,
   onPreview,
@@ -185,3 +185,5 @@ export function ListControl({
     </div>
   );
 }
+
+export const ListControl = memo(ListControlComponent);

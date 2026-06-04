@@ -1,4 +1,13 @@
-import { useId, type CSSProperties } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { css } from "styled-system/css";
 
 type SliderProps = {
@@ -90,7 +99,7 @@ const inputClass = css({
   },
 });
 
-export function Slider({
+function SliderComponent({
   disabled = false,
   label,
   max,
@@ -102,8 +111,119 @@ export function Slider({
 }: SliderProps) {
   const id = useId();
   const outputId = `${id}-value`;
+
+  // The native input stays visually immediate on every event, but the store
+  // dispatch is coalesced to one call per animation frame so a drag updates the
+  // model at most once per frame. The exact final value is flushed on release.
+  const [draftValue, setDraftValue] = useState(value);
+  const isDraggingRef = useRef(false);
+  const rafIdRef = useRef<number | null>(null);
+  const pendingRef = useRef<number | null>(null);
+
+  // Keep the visible value in sync with the controlled prop while not dragging.
+  useEffect(() => {
+    if (!isDraggingRef.current) {
+      setDraftValue(value);
+    }
+  }, [value]);
+
+  const flushPending = useCallback(() => {
+    rafIdRef.current = null;
+
+    if (pendingRef.current !== null) {
+      const next = pendingRef.current;
+      pendingRef.current = null;
+      onValueChange(next);
+    }
+  }, [onValueChange]);
+
+  const scheduleDispatch = useCallback(
+    (next: number) => {
+      pendingRef.current = next;
+
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(flushPending);
+      }
+    },
+    [flushPending],
+  );
+
+  useEffect(
+    () => () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    },
+    [],
+  );
+
+  const beginInteraction = useCallback(() => {
+    isDraggingRef.current = true;
+  }, []);
+
+  const endInteraction = useCallback(() => {
+    if (!isDraggingRef.current) {
+      return;
+    }
+
+    isDraggingRef.current = false;
+
+    // Flush the latest value synchronously so the settled store value is exact.
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    if (pendingRef.current !== null) {
+      const next = pendingRef.current;
+      pendingRef.current = null;
+      onValueChange(next);
+    }
+  }, [onValueChange]);
+
+  const handleChange = useCallback(
+    (next: number) => {
+      setDraftValue(next);
+
+      if (isDraggingRef.current) {
+        scheduleDispatch(next);
+      } else {
+        // Keyboard step / programmatic — dispatch immediately.
+        onValueChange(next);
+      }
+    },
+    [onValueChange, scheduleDispatch],
+  );
+
+  const handlePointerDown = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+
+    beginInteraction();
+  }, [disabled, beginInteraction]);
+
+  const handlePointerUp = useCallback(
+    (_event: ReactPointerEvent<HTMLInputElement>) => {
+      endInteraction();
+    },
+    [endInteraction],
+  );
+
+  const handleKeyDown = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+
+    beginInteraction();
+  }, [disabled, beginInteraction]);
+
+  const handleKeyUp = useCallback(() => {
+    endInteraction();
+  }, [endInteraction]);
+
   const range = max - min;
-  const percent = range === 0 ? 0 : ((value - min) / range) * 100;
+  const percent = range === 0 ? 0 : ((draftValue - min) / range) * 100;
   const style = {
     "--slider-fill": `${Math.min(Math.max(percent, 0), 100)}%`,
   } as CSSProperties;
@@ -122,13 +242,22 @@ export function Slider({
         min={min}
         max={max}
         step={step}
-        value={value}
+        value={draftValue}
         aria-valuetext={valueLabel}
         aria-describedby={outputId}
         disabled={disabled}
         className={inputClass}
-        onChange={(event) => onValueChange(Number(event.target.value))}
+        onChange={(event) => handleChange(Number(event.target.value))}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onLostPointerCapture={handlePointerUp}
+        onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
+        onBlur={endInteraction}
       />
     </label>
   );
 }
+
+export const Slider = memo(SliderComponent);

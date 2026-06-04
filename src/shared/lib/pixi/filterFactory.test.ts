@@ -272,6 +272,10 @@ describe("Pixi filter factory", () => {
     expect(signal.extract.sourceLimiter).toBe(values.sourceLimiter);
     expect(signal.extract.smoothness).toBe(values.smoothness);
     expect(signal.extract.hue).toBe(values.hue);
+    // Default Kawase blur quality (full); overridable for cheap previews.
+    expect((signal.blur as unknown as { options: { quality: number } }).options.quality).toBe(5);
+    const cheap = filterFactory.createHalationSignalFilters(values, { blurQuality: 3 });
+    expect((cheap.blur as unknown as { options: { quality: number } }).options.quality).toBe(3);
     expect(composite.backgroundGain).toBe(values.backgroundGain);
     expect(composite.globalDiffusion).toBe(values.globalDiffusion);
     expect(composite.amplify).toBe(values.amplify);

@@ -168,7 +168,26 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // LUT PNGs (~7 MB) are excluded from precache so the app shell installs
+        // fast; they are fetched on demand and cached by the runtime route below.
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        globIgnores: ["**/luts/**"],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/luts/"),
+            handler: "CacheFirst",
+            options: {
+              cacheName: "lut-textures",
+              expiration: {
+                maxEntries: 32,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
       },
     }),
   ],

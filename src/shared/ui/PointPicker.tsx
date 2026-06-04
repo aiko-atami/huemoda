@@ -1,4 +1,5 @@
 import {
+  memo,
   useCallback,
   useId,
   useRef,
@@ -103,7 +104,7 @@ const crosshairClass = css({
   transform: "translate(-50%, -50%)",
 });
 
-export function PointPicker({ disabled = false, label, onValueChange, x, y }: PointPickerProps) {
+function PointPickerComponent({ disabled = false, label, onValueChange, x, y }: PointPickerProps) {
   const padRef = useRef<HTMLDivElement>(null);
   const labelId = useId();
 
@@ -185,3 +186,5 @@ export function PointPicker({ disabled = false, label, onValueChange, x, y }: Po
     </div>
   );
 }
+
+export const PointPicker = memo(PointPickerComponent);

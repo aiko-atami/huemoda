@@ -18,6 +18,23 @@ factory, and every custom filter class. Read this before adding or changing a fi
   helpers (`motionBlurKernelSize`, `zoomBlurCenter`, `spinBlurPosition`) so the
   build path and the in-place update path cannot drift.
 
+## Preview Quality And Export
+
+- A value-only change (same enabled-set fingerprint, no multi-pass filter) writes
+  uniforms onto the retained instances via `updateFilterUniforms` and re-bakes — no
+  teardown/recreate, so a slider drag has no per-tick shader churn and releasing it
+  produces no visible re-render (same bake path during drag and on release).
+- Preview bakes are resolution-capped by `qualityProfile.ts` (`previewBakeResolution`).
+  **Export must stay pristine:** `exportImage` sets the `exporting` flag and re-bakes
+  the whole pipeline at `resolution: 1` — never reuse the on-screen `filteredTexture`
+  for export, it may be preview-capped.
+- LUT textures load on demand via `ensureLutLoaded()` (no eager bulk load at init).
+  `createPixiFilterChain` silently skips a LUT whose texture is not cached yet; the
+  load re-applies filters on arrival. A new preset must be in `LUT_PRESETS` to be
+  loadable, and excluded from Workbox precache (served by the `/luts/*` runtime route).
+- Dev-only timing: wrap costly paths with `perfTime`/`perfTimeAsync` from `perfLog.ts`
+  (zero-cost in production; opt in via `localStorage["huemoda:perf"]="1"`).
+
 ## Pixi Imports And Bundle Size
 
 - Do not import from `src/shared/lib/pixi/index.ts` unless Pixi runtime is actually

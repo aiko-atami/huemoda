@@ -10,7 +10,13 @@ import {
   type PixiFilterHandles,
 } from "./filterFactory";
 import { createEmptyPixiFilterValues, type PixiFilterValues } from "./filterTypes";
-import { LUT_PRESETS } from "./lutPresets";
+import { DEFAULT_LUT_PRESET_ID, LUT_PRESETS } from "./lutPresets";
+import {
+  previewResolutionScale,
+  resolveQualityProfile,
+  type QualityProfile,
+} from "./qualityProfile";
+import { perfLog, perfTime, perfTimeAsync } from "./perfLog";
 import type { ExportMimeType } from "./exportTypes";
 
 export type PixiRendererBackend = "webgpu" | "webgl2" | "webgl" | "canvas" | "unknown";
@@ -56,9 +62,12 @@ export class PixiPhotoRenderer {
   private activeFilters: Filter[] = [];
   private filterHandles: PixiFilterHandles = {};
   private filterFingerprint = "";
+  private exporting = false;
   private readonly grainSeed = Math.random();
   private static pluginsDeduped = false;
   private readonly lutTextures = new Map<string, Texture>();
+  private readonly lutLoading = new Set<string>();
+  private readonly qualityProfile: QualityProfile = resolveQualityProfile();
 
   constructor(host: HTMLElement) {
     if (!PixiPhotoRenderer.pluginsDeduped) {
@@ -102,7 +111,7 @@ export class PixiPhotoRenderer {
     let image: HTMLImageElement;
 
     try {
-      image = await loadImageElement(objectUrl);
+      image = await perfTimeAsync("image decode", () => loadImageElement(objectUrl));
     } catch {
       if (!this.disposed && token === this.loadToken) {
         this.clearSprite();
@@ -117,6 +126,11 @@ export class PixiPhotoRenderer {
     }
 
     this.texture = Texture.from(image, true);
+    perfLog("image uploaded", {
+      width: this.texture.width,
+      height: this.texture.height,
+      previewScale: this.previewBakeResolution(),
+    });
     this.sourceSprite = new Sprite(this.texture);
     this.displaySprite = new Sprite(this.texture);
     this.displaySprite.anchor.set(0.5);
@@ -174,6 +188,14 @@ export class PixiPhotoRenderer {
   setFilterValues(filterValues: PixiFilterValues): void {
     this.filterValues = filterValues;
 
+    // Kick off an on-demand load for the requested LUT preset (the chain build
+    // silently skips a LUT whose texture is not cached yet; the load re-applies
+    // filters on arrival). Triggered whenever LUT is enabled so a previewed
+    // preset is fetched even before its intensity is raised.
+    if (filterValues.lut.enabled && filterValues.lut.presetId) {
+      void this.ensureLutLoaded(filterValues.lut.presetId);
+    }
+
     if (this.initialized) {
       this.updateFilters();
       this.requestRender();
@@ -194,22 +216,36 @@ export class PixiPhotoRenderer {
       throw new Error("Nothing to export");
     }
 
-    if (this.filteredTexture === null && this.activeFilters.length > 0) {
-      this.updateFilteredTexture();
+    // The on-screen `filteredTexture` may be a preview-capped (lower-resolution)
+    // bake, so it must never be reused for export. Force a full-resolution rebuild
+    // of the whole pipeline (flat chain or halation composite) while `exporting`
+    // is set, extract pixels, then restore the cheap preview bake.
+    this.exporting = true;
+
+    try {
+      return await perfTimeAsync("export", async () => {
+        this.applyFilters();
+
+        const exportSprite = new Sprite(this.filteredTexture ?? this.texture!);
+
+        const canvas = this.app!.renderer.extract.canvas({
+          target: exportSprite,
+          antialias: true,
+          resolution: 1,
+          clearColor: "#00000000",
+        });
+
+        exportSprite.destroy();
+
+        return canvasToBlob(canvas, options.mimeType, options.quality);
+      });
+    } finally {
+      this.exporting = false;
+      // Re-bake the on-screen texture at preview quality so the display sprite is
+      // not left holding the full-resolution export texture.
+      this.applyFilters();
+      this.requestRender();
     }
-
-    const exportSprite = new Sprite(this.filteredTexture ?? this.texture);
-
-    const canvas = this.app.renderer.extract.canvas({
-      target: exportSprite,
-      antialias: true,
-      resolution: 1,
-      clearColor: "#00000000",
-    });
-
-    exportSprite.destroy();
-
-    return canvasToBlob(canvas, options.mimeType, options.quality);
   }
 
   destroy(): void {
@@ -239,20 +275,24 @@ export class PixiPhotoRenderer {
 
     this.app = app;
 
-    await app.init({
-      width,
-      height,
-      backgroundAlpha: 0,
-      antialias: true,
-      autoDensity: true,
-      resolution: Math.min(window.devicePixelRatio || 1, 2),
-      preference: ["webgpu", "webgl"],
-      powerPreference: "high-performance",
-      autoStart: false,
-    });
+    await perfTimeAsync("app.init", () =>
+      app.init({
+        width,
+        height,
+        backgroundAlpha: 0,
+        antialias: true,
+        autoDensity: true,
+        resolution: Math.min(window.devicePixelRatio || 1, 2),
+        preference: ["webgpu", "webgl"],
+        powerPreference: "high-performance",
+        autoStart: false,
+      }),
+    );
 
-    await this.loadLutTextures();
-
+    // LUT textures (~7 MB across 15 PNGs) are NOT awaited here — the editor
+    // becomes interactive as soon as the Pixi app is up. Presets load on demand
+    // when first selected/previewed (see `ensureLutLoaded`), and the default
+    // preset is warmed in the background below.
     this.initialized = true;
 
     if (this.disposed) {
@@ -269,6 +309,15 @@ export class PixiPhotoRenderer {
     });
     this.resizeObserver.observe(this.host);
     this.resize();
+
+    perfLog("renderer ready", {
+      backend: this.getRendererBackend(),
+      profile: this.qualityProfile,
+    });
+
+    // Warm the default preset in the background so the most common LUT is ready
+    // without blocking first paint.
+    void this.ensureLutLoaded(DEFAULT_LUT_PRESET_ID);
   }
 
   private resize(): void {
@@ -324,9 +373,13 @@ export class PixiPhotoRenderer {
     // retained instance to update; an equal fingerprint with no multi-pass filter
     // enabled guarantees both sides are flat chains.
     const nextFingerprint = getFilterFingerprint(this.filterValues);
-    const canUpdateInPlace =
-      this.filterFingerprint === nextFingerprint && !requiresFullRebuild(this.filterValues);
+    const sameTopology = this.filterFingerprint === nextFingerprint;
+    const canUpdateInPlace = sameTopology && !requiresFullRebuild(this.filterValues);
 
+    // Topology unchanged (the common slider-drag case): write uniforms onto the
+    // retained filter instances and re-bake — no teardown/recreate of the chain,
+    // so there is no per-tick shader-program churn. Same render path on every
+    // event and on release, so releasing a slider produces no visible re-render.
     if (canUpdateInPlace) {
       updateFilterUniforms(this.filterHandles, this.filterValues, this.getFilterContext());
       this.updateFilteredTexture();
@@ -355,7 +408,13 @@ export class PixiPhotoRenderer {
       const baseTexture = this.bakeToRenderTexture(this.sourceSprite);
       this.sourceSprite.filters = null;
 
-      const { extract, blur } = createHalationSignalFilters(this.filterValues.halation);
+      // Lower the Kawase blur pass count for the on-screen mobile preview bake;
+      // desktop and export keep full quality. Drag and release use the same bake
+      // path, so this changes preview quality only by profile, not by interaction state.
+      const blurQuality = !this.exporting && this.qualityProfile === "mobile" ? 3 : 5;
+      const { extract, blur } = createHalationSignalFilters(this.filterValues.halation, {
+        blurQuality,
+      });
       const signalSprite = new Sprite(baseTexture);
       signalSprite.filters = [extract, blur];
       const signalTexture = this.bakeToRenderTexture(signalSprite);
@@ -403,11 +462,25 @@ export class PixiPhotoRenderer {
     };
   }
 
+  /**
+   * Resolution factor for preview render-texture bakes. Caps the baked texture's
+   * longest side per the quality profile so large images don't bake at full GPU
+   * cost for an on-screen sprite that is downscaled to fit anyway. Always 1 while
+   * exporting so the exported pixels are full native resolution.
+   */
+  private previewBakeResolution(): number {
+    if (this.exporting || this.texture === null) {
+      return 1;
+    }
+
+    return previewResolutionScale(this.texture.width, this.texture.height, this.qualityProfile);
+  }
+
   private bakeToRenderTexture(target: Container): RenderTexture {
     return this.app!.renderer.textureGenerator.generateTexture({
       target,
       frame: new Rectangle(0, 0, this.texture!.width, this.texture!.height),
-      resolution: 1,
+      resolution: this.previewBakeResolution(),
       antialias: true,
       clearColor: "#00000000",
     });
@@ -482,13 +555,17 @@ export class PixiPhotoRenderer {
       return;
     }
 
-    const nextTexture = this.app.renderer.textureGenerator.generateTexture({
-      target: this.sourceSprite,
-      frame: new Rectangle(0, 0, this.texture.width, this.texture.height),
-      resolution: 1,
-      antialias: true,
-      clearColor: "#00000000",
-    });
+    const sourceSprite = this.sourceSprite;
+    const texture = this.texture;
+    const nextTexture = perfTime("bake filteredTexture", () =>
+      this.app!.renderer.textureGenerator.generateTexture({
+        target: sourceSprite,
+        frame: new Rectangle(0, 0, texture.width, texture.height),
+        resolution: this.previewBakeResolution(),
+        antialias: true,
+        clearColor: "#00000000",
+      }),
+    );
 
     this.displaySprite.texture = nextTexture;
     this.destroyFilteredTexture();
@@ -533,35 +610,64 @@ export class PixiPhotoRenderer {
     this.initialized = false;
   }
 
-  private async loadLutTextures(): Promise<void> {
-    const results = await Promise.allSettled(
-      LUT_PRESETS.map(async (preset) => {
-        const texture = await Assets.load<Texture>({
-          src: preset.file,
-          data: null,
-        });
-
-        if (!texture.source) {
-          throw new Error(`[LUT] No source for preset "${preset.id}"`);
-        }
-
-        texture.source.style.scaleMode = "linear";
-        texture.source.style.addressMode = "clamp-to-edge";
-        texture.source.autoGenerateMipmaps = false;
-        texture.source.style.update();
-        texture.source.update();
-
-        return { presetId: preset.id, texture };
-      }),
-    );
-
-    for (const result of results) {
-      if (result.status === "fulfilled") {
-        this.lutTextures.set(result.value.presetId, result.value.texture);
-      } else {
-        console.warn("[LUT] Failed to load preset:", result.reason);
-      }
+  /**
+   * Load a single LUT texture on demand and cache it by preset id. In-flight
+   * loads are deduped. When a texture resolves for a preset that is still the
+   * active selection, the filter chain is re-applied and a render scheduled so
+   * the LUT appears without a flicker (the previous output stays until it lands).
+   */
+  private async ensureLutLoaded(presetId: string): Promise<void> {
+    if (this.lutTextures.has(presetId) || this.lutLoading.has(presetId)) {
+      return;
     }
+
+    const preset = LUT_PRESETS.find((entry) => entry.id === presetId);
+
+    if (preset === undefined) {
+      return;
+    }
+
+    this.lutLoading.add(presetId);
+
+    try {
+      const texture = await perfTimeAsync(`lut load ${preset.id}`, () =>
+        Assets.load<Texture>({ src: preset.file, data: null }),
+      );
+
+      if (this.disposed) {
+        return;
+      }
+
+      if (!texture.source) {
+        throw new Error(`[LUT] No source for preset "${preset.id}"`);
+      }
+
+      texture.source.style.scaleMode = "linear";
+      texture.source.style.addressMode = "clamp-to-edge";
+      texture.source.autoGenerateMipmaps = false;
+      texture.source.style.update();
+      texture.source.update();
+
+      this.lutTextures.set(preset.id, texture);
+
+      // If this preset is the one currently requested, rebuild so the freshly
+      // loaded texture is picked up by `createPixiFilterChain`.
+      if (this.initialized && this.activeLutPresetId() === preset.id) {
+        this.applyFilters();
+        this.requestRender();
+      }
+    } catch (reason) {
+      console.warn("[LUT] Failed to load preset:", reason);
+    } finally {
+      this.lutLoading.delete(presetId);
+    }
+  }
+
+  /** The LUT preset id the current filter values request, if LUT is active. */
+  private activeLutPresetId(): string | null {
+    const { lut } = this.filterValues;
+
+    return lut.enabled && lut.intensity > 0 ? lut.presetId : null;
   }
 }
 
