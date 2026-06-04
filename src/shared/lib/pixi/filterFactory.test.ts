@@ -349,6 +349,33 @@ describe("Pixi filter factory", () => {
     expect(filterFactory.getFilterFingerprint(values)).toContain("lut:coolFade");
   });
 
+  it("forces a full rebuild only when a multi-pass filter is enabled", () => {
+    const flat = createEmptyPixiFilterValues();
+    flat.tone.enabled = true;
+    flat.grain.enabled = true;
+    flat.grain.amount = 0.2;
+    flat.crt.enabled = true;
+
+    expect(filterFactory.requiresFullRebuild(flat)).toBe(false);
+
+    const multiPass = createEmptyPixiFilterValues();
+    multiPass.halation.enabled = true;
+
+    expect(filterFactory.requiresFullRebuild(multiPass)).toBe(true);
+  });
+
+  it("registers only valid PixiFilterValues keys as multi-pass", () => {
+    const values = createEmptyPixiFilterValues();
+
+    for (const key of filterFactory.MULTI_PASS_FILTER_KEYS) {
+      // Guards against a typo/rename: each registered key must address a real
+      // filter slice that carries an `enabled` boolean (what `requiresFullRebuild`
+      // reads). An invalid key would silently make the rebuild guard a no-op.
+      expect(values).toHaveProperty(key);
+      expect(typeof values[key].enabled).toBe("boolean");
+    }
+  });
+
   it("converts shared filter values for build and live-update paths", () => {
     const zoom = createEmptyPixiFilterValues().zoomBlur;
     zoom.centerX = 25;

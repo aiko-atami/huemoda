@@ -333,12 +333,30 @@ export function createPixiFilterChain(
 }
 
 /**
+ * Filters that bake their own multi-stage render-to-texture pipeline instead of
+ * a flat `sourceSprite.filters` chain. Their uniforms cannot be written in place
+ * (there is no single retained instance to set), so the renderer must rebuild
+ * whenever any of them is enabled — even when the fingerprint is otherwise equal.
+ * Add a key here when introducing another multi-pass filter (see AGENTS.md,
+ * "Adding a multi-pass filter").
+ */
+export const MULTI_PASS_FILTER_KEYS = ["halation"] as const;
+
+/**
+ * True when any multi-pass filter is enabled, meaning the in-place uniform fast
+ * path must be skipped in favour of a full `applyFilters()` rebuild.
+ */
+export function requiresFullRebuild(values: PixiFilterValues): boolean {
+  return MULTI_PASS_FILTER_KEYS.some((key) => values[key].enabled);
+}
+
+/**
  * Ordered list of the filter keys whose enabled gate is currently satisfied —
  * the exact gates `createPixiFilterChain` uses. Two value sets with the same
  * fingerprint produce the same chain *topology*, so a drag between them can be
  * served by an in-place uniform update. `halation.enabled` is included because
  * it switches the whole pipeline shape; the renderer additionally forces a
- * rebuild whenever halation is involved.
+ * rebuild whenever a multi-pass filter is involved (see {@link requiresFullRebuild}).
  */
 export function getFilterFingerprint(values: PixiFilterValues): string {
   const keys: string[] = [];

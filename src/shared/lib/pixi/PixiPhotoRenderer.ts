@@ -4,6 +4,7 @@ import {
   createHalationSignalFilters,
   createPixiFilterChain,
   getFilterFingerprint,
+  requiresFullRebuild,
   updateFilterUniforms,
   type PixiFilterContext,
   type PixiFilterHandles,
@@ -317,13 +318,14 @@ export class PixiPhotoRenderer {
     }
 
     // Same enabled-set as last build means the chain topology is unchanged, so
-    // uniforms can be written in place. Halation is excluded because it bakes a
-    // multi-stage pipeline rather than a flat filter chain; `halation.enabled`
-    // alone is sufficient (the fingerprint already encodes it, so an equal
-    // fingerprint with halation off guarantees both sides are halation-free).
+    // uniforms can be written in place. Multi-pass filters (see
+    // `requiresFullRebuild` / `MULTI_PASS_FILTER_KEYS`) are excluded because they
+    // bake a multi-stage pipeline rather than a flat filter chain and have no
+    // retained instance to update; an equal fingerprint with no multi-pass filter
+    // enabled guarantees both sides are flat chains.
     const nextFingerprint = getFilterFingerprint(this.filterValues);
     const canUpdateInPlace =
-      this.filterFingerprint === nextFingerprint && !this.filterValues.halation.enabled;
+      this.filterFingerprint === nextFingerprint && !requiresFullRebuild(this.filterValues);
 
     if (canUpdateInPlace) {
       updateFilterUniforms(this.filterHandles, this.filterValues, this.getFilterContext());
@@ -344,6 +346,9 @@ export class PixiPhotoRenderer {
     const context = this.getFilterContext();
     const fingerprint = getFilterFingerprint(this.filterValues);
 
+    // Multi-pass filters each need their own bake branch here (there is no
+    // generic multi-stage baker). When adding one, also register its key in
+    // `MULTI_PASS_FILTER_KEYS` so the in-place fast path skips it. See AGENTS.md.
     if (this.filterValues.halation.enabled) {
       const { filters: baseFilters } = createPixiFilterChain(this.filterValues, context);
       this.sourceSprite.filters = baseFilters.length > 0 ? baseFilters : null;
