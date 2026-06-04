@@ -79,6 +79,8 @@ File: `src/shared/lib/pixi/PixiPhotoRenderer.ts`
 
 ### P1 — In-place uniform updates (eliminate per-tick shader churn)
 
+**Status:** ✅ Done as first part of PR 2. `filterFactory` now exposes an enabled-set fingerprint, typed filter-handle registry, shared conversion helpers, `createPixiFilterChain()`, and `updateFilterUniforms()`. `PixiPhotoRenderer` stores the current fingerprint/handles and uses an in-place update fast path when the non-halation topology is unchanged; topology changes and any halation path still rebuild. The preview bake still refreshes synchronously after uniform updates; moving that bake into interaction-mode scheduling remains open. Validated with `vp check --fix`, `vp check`, `vp test`, and `vp build`.
+
 **Goal:** during a slider drag where the enabled-filter set is unchanged, update
 uniforms on the existing filter instances instead of destroying + recreating the
 whole chain.
@@ -277,10 +279,8 @@ it, cancel on destroy, disable Pixi auto ticker via `autoStart: false`, convert
 type-only barrel imports to direct `import type`. Behavior-preserving.
 Validated with `vp check`, `vp lint`, `vp test`, and `vp build`.
 
-**PR 2 — In-place uniform updates + interaction mode + UI coalescing (P1).**
-Fingerprint + `updateFilterUniforms` + filter-handle registry; `setInteracting`
-driven by Effector `interactionStarted/Ended`; `React.memo` on leaf controls +
-rAF-throttled slider dispatch. The core jank fix. Needs the most testing.
+**PR 2 — In-place uniform updates + interaction mode + UI coalescing (P1). — 🟡 In progress**
+✅ Fingerprint + `updateFilterUniforms` + filter-handle registry are implemented and integrated into `PixiPhotoRenderer` for non-halation same-topology updates. ⏳ Remaining: `setInteracting` driven by Effector `interactionStarted/Ended`, moving preview bake work into interaction-mode scheduling, `React.memo` on leaf controls, and rAF-throttled slider dispatch.
 
 **PR 3 — Quality profiles + preview resolution cap (P2 quality).**
 Profile resolution, preview-bake size cap, per-filter preview caps, AA off during
@@ -297,13 +297,14 @@ runtime cache for `/luts/*.png`.
 - **Automated:** `vp check` (then `vp check --fix` if formatting), `vp lint`,
   `vp test`, `vp build` after each PR.
 - **New unit tests (node Vitest, no real GL — mock filters per CLAUDE.md):**
-  - Enabled-set fingerprint equals/differs correctly across representative
+  - ✅ Enabled-set fingerprint equals/differs correctly across representative
     `PixiFilterValues` (toggle each gate: `enabled`, `lut.intensity`,
     `blur.strength`, `grain.amount`, `lightLeak.intensity`, `halation.enabled`).
-  - `updateFilterUniforms` writes the same converted values that
-    `createPixiFilters` would have constructed (assert via mocked setters), for a
-    few filters incl. `lightLeak` color, `motionBlur` odd kernel, `zoomBlur`
-    center, `spinBlur` pixel coords.
+  - ✅ Shared conversion helpers are covered for `motionBlur` odd kernel,
+    `zoomBlur` center/innerRadius, and `spinBlur` pixel coords.
+  - ✅ `updateFilterUniforms` writes converted live values onto mocked retained
+    handles for representative filters including blur, motion blur, zoom blur,
+    and spin blur.
   - Export guard unchanged: `$canExport` still requires `renderer !== null &&
     loadedImage !== null`; preview-quality profile never reaches `exportImage`.
 - **Manual / device:**

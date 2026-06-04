@@ -1,6 +1,13 @@
 import { Application, Assets, Container, Rectangle, RenderTexture, Sprite, Texture } from "pixi.js";
 import type { Filter } from "pixi.js";
-import { createHalationSignalFilters, createPixiFilters } from "./filterFactory";
+import {
+  createHalationSignalFilters,
+  createPixiFilterChain,
+  getFilterFingerprint,
+  updateFilterUniforms,
+  type PixiFilterContext,
+  type PixiFilterHandles,
+} from "./filterFactory";
 import { createEmptyPixiFilterValues, type PixiFilterValues } from "./filterTypes";
 import { LUT_PRESETS } from "./lutPresets";
 import type { ExportMimeType } from "./exportTypes";
@@ -46,6 +53,8 @@ export class PixiPhotoRenderer {
   private loadToken = 0;
   private filterValues: PixiFilterValues = createEmptyPixiFilterValues();
   private activeFilters: Filter[] = [];
+  private filterHandles: PixiFilterHandles = {};
+  private filterFingerprint = "";
   private readonly grainSeed = Math.random();
   private static pluginsDeduped = false;
   private readonly lutTextures = new Map<string, Texture>();
@@ -165,12 +174,12 @@ export class PixiPhotoRenderer {
     this.filterValues = filterValues;
 
     if (this.initialized) {
-      this.applyFilters();
+      this.updateFilters();
       this.requestRender();
     } else {
       void this.readyPromise.then(() => {
         if (!this.disposed) {
-          this.applyFilters();
+          this.updateFilters();
           this.requestRender();
         }
       });
@@ -302,6 +311,29 @@ export class PixiPhotoRenderer {
     this.displaySprite.position.set(rendererWidth / 2, rendererHeight / 2);
   }
 
+  private updateFilters(): void {
+    if (this.sourceSprite === null || this.texture === null) {
+      return;
+    }
+
+    // Same enabled-set as last build means the chain topology is unchanged, so
+    // uniforms can be written in place. Halation is excluded because it bakes a
+    // multi-stage pipeline rather than a flat filter chain; `halation.enabled`
+    // alone is sufficient (the fingerprint already encodes it, so an equal
+    // fingerprint with halation off guarantees both sides are halation-free).
+    const nextFingerprint = getFilterFingerprint(this.filterValues);
+    const canUpdateInPlace =
+      this.filterFingerprint === nextFingerprint && !this.filterValues.halation.enabled;
+
+    if (canUpdateInPlace) {
+      updateFilterUniforms(this.filterHandles, this.filterValues, this.getFilterContext());
+      this.updateFilteredTexture();
+      return;
+    }
+
+    this.applyFilters();
+  }
+
   private applyFilters(): void {
     if (this.sourceSprite === null || this.texture === null) {
       return;
@@ -309,15 +341,11 @@ export class PixiPhotoRenderer {
 
     destroyFilters(this.activeFilters);
 
-    const context = {
-      width: this.texture.width,
-      height: this.texture.height,
-      lutTextures: this.lutTextures,
-      grainSeed: this.grainSeed,
-    };
+    const context = this.getFilterContext();
+    const fingerprint = getFilterFingerprint(this.filterValues);
 
     if (this.filterValues.halation.enabled) {
-      const baseFilters = createPixiFilters(this.filterValues, context);
+      const { filters: baseFilters } = createPixiFilterChain(this.filterValues, context);
       this.sourceSprite.filters = baseFilters.length > 0 ? baseFilters : null;
       const baseTexture = this.bakeToRenderTexture(this.sourceSprite);
       this.sourceSprite.filters = null;
@@ -345,8 +373,13 @@ export class PixiPhotoRenderer {
       this.halationSignalTexture?.destroy(true);
       this.halationSignalTexture = signalTexture;
       this.activeFilters = [...baseFilters, extract, blur];
+      this.filterHandles = {};
+      this.filterFingerprint = fingerprint;
     } else {
-      this.activeFilters = createPixiFilters(this.filterValues, context);
+      const { filters, handles } = createPixiFilterChain(this.filterValues, context);
+      this.activeFilters = filters;
+      this.filterHandles = handles;
+      this.filterFingerprint = fingerprint;
       this.sourceSprite.filters = this.activeFilters.length > 0 ? this.activeFilters : null;
       this.halationBaseTexture?.destroy(true);
       this.halationBaseTexture = null;
@@ -354,6 +387,15 @@ export class PixiPhotoRenderer {
       this.halationSignalTexture = null;
       this.updateFilteredTexture();
     }
+  }
+
+  private getFilterContext(): PixiFilterContext {
+    return {
+      width: this.texture?.width ?? 0,
+      height: this.texture?.height ?? 0,
+      lutTextures: this.lutTextures,
+      grainSeed: this.grainSeed,
+    };
   }
 
   private bakeToRenderTexture(target: Container): RenderTexture {
@@ -404,6 +446,8 @@ export class PixiPhotoRenderer {
   private clearSprite(): void {
     destroyFilters(this.activeFilters);
     this.activeFilters = [];
+    this.filterHandles = {};
+    this.filterFingerprint = "";
     this.sourceSprite?.destroy();
     this.displaySprite?.destroy();
     this.destroyFilteredTexture();
